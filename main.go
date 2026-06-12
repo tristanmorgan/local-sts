@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"runtime"
 	"text/template"
 
@@ -39,9 +40,36 @@ const UserIDTemplate = `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.
 </GetCallerIdentityResponse>`
 
 func decodeARN(access_key_id string) (decode_account_id string) {
-	//	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
-	// implementation goes in here
-	return "012345678901"
+	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+
+	// Extract characters 3-12 (10 characters)
+	if len(access_key_id) < 13 {
+		return "000000000000"
+	}
+	paddedNo := access_key_id[3:13]
+
+	// Base32 decode
+	var decimal uint64 = 0
+	for _, char := range paddedNo {
+		index := -1
+		for i, c := range awsTable {
+			if c == char {
+				index = i
+				break
+			}
+		}
+		if index == -1 {
+			return "000000000000"
+		}
+		decimal = (decimal << 5) + uint64(index)
+	}
+
+	// Shift right by 4 bits and mask with 40-bit mask
+	mask := uint64((1 << 40) - 1)
+	decimal = (decimal >> 4) & mask
+
+	// Format as 12-digit string with leading zeros
+	return fmt.Sprintf("%012d", decimal)
 }
 
 type ResponseVars struct {
@@ -55,8 +83,18 @@ func stsCall(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("x-amzn-RequestId", request_id)
 	w.Header().Set("Content-Type", "text/xml")
 
-	// access_key comes from Authorization header
-	access_key := "AKIAI44QH8DHBEXAMPLE"
+	// Extract access_key from Authorization header
+	// Format: AWS4-HMAC-SHA256 Credential=AKIAI44QH8DHBEXAMPLE/20160126/us-east-1/sts/aws4_request,...
+	access_key := "AKIAI44QH8DHBEXAMPLE" // default fallback
+	authHeader := req.Header.Get("Authorization")
+	if authHeader != "" {
+		// Use regex to extract access key from Credential=<ACCESS_KEY>/...
+		re := regexp.MustCompile(`Credential=([A-Z0-9]+)/`)
+		matches := re.FindStringSubmatch(authHeader)
+		if len(matches) > 1 {
+			access_key = matches[1]
+		}
+	}
 	account_id := decodeARN(access_key)
 	// POST / HTTP/1.1
 	// Accept-Encoding: identity
@@ -72,7 +110,6 @@ func stsCall(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	io.WriteString(w, UserIDTemplate)
 	err = tmpl.Execute(w, respVar)
 	if err != nil {
 		log.Fatalf("execution failed: %s", err)
