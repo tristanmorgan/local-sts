@@ -39,6 +39,15 @@ const UserIDTemplate = `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.
   </ResponseMetadata>
 </GetCallerIdentityResponse>`
 
+const keyInfoTemplate = `<GetAccessKeyInfoResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <GetAccessKeyInfoResult>
+    <Account>{{ .AccountId }}</Account>    
+  </GetAccessKeyInfoResult>
+ <ResponseMetadata>
+    <RequestId>{{ .RequestId }}</RequestId>
+ </ResponseMetadata>
+</GetAccessKeyInfoResponse>`
+
 func decodeARN(access_key_id string) (decode_account_id string) {
 	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 
@@ -79,13 +88,24 @@ type ResponseVars struct {
 }
 
 func stsCall(w http.ResponseWriter, req *http.Request) {
+	if req.Method == http.MethodPost {
+		stsCallerIdentityCall(w, req)
+	} else if req.Method == http.MethodGet {
+		stsKeyInfoCall(w, req)
+	} else {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func stsCallerIdentityCall(w http.ResponseWriter, req *http.Request) {
+	// Action=GetCallerIdentity&Version=2011-06-15
 	request_id := uuid.New().String()
 	w.Header().Set("x-amzn-RequestId", request_id)
 	w.Header().Set("Content-Type", "text/xml")
 
 	// Extract access_key from Authorization header
 	// Format: AWS4-HMAC-SHA256 Credential=AKIAI44QH8DHBEXAMPLE/20160126/us-east-1/sts/aws4_request,...
-	access_key := "AKIAI44QH8DHBEXAMPLE" // default fallback
+	access_key := ""
 	authHeader := req.Header.Get("Authorization")
 	if authHeader != "" {
 		// Use regex to extract access key from Credential=<ACCESS_KEY>/...
@@ -96,14 +116,6 @@ func stsCall(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	account_id := decodeARN(access_key)
-	// POST / HTTP/1.1
-	// Accept-Encoding: identity
-	// Content-Type: application/x-www-form-urlencoded
-	// Authorization: AWS4-HMAC-SHA256 Credential=AKIAI44QH8DHBEXAMPLE/20160126/us-east-1/sts/aws4_request,
-	//         SignedHeaders=host;user-agent;x-amz-date,
-	//         Signature=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
-	//
-	// Action=GetCallerIdentity&Version=2011-06-15
 
 	respVar := ResponseVars{account_id, access_key, request_id}
 	tmpl, err := template.New("resp").Parse(UserIDTemplate)
@@ -116,6 +128,28 @@ func stsCall(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func stsKeyInfoCall(w http.ResponseWriter, req *http.Request) {
+	request_id := uuid.New().String()
+	w.Header().Set("x-amzn-RequestId", request_id)
+	w.Header().Set("Content-Type", "text/xml")
+
+	// Extract access_key from query parameter AccessKeyId
+	access_key := req.URL.Query().Get("AccessKeyId")
+	if access_key == "" {
+		access_key = "AKIAI44QH8DHBEXAMPLE"
+	}
+	account_id := decodeARN(access_key)
+
+	respVar := ResponseVars{account_id, access_key, request_id}
+	tmpl, err := template.New("resp").Parse(keyInfoTemplate)
+	if err != nil {
+		panic(err)
+	}
+	err = tmpl.Execute(w, respVar)
+	if err != nil {
+		log.Fatalf("execution failed: %s", err)
+	}
+}
 func health(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Server", "local-sts/"+Version+" (+"+Homepage+")")
 	io.WriteString(w, "Healthy.\n")

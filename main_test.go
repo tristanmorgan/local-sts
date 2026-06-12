@@ -60,7 +60,7 @@ func TestDecodeARN(t *testing.T) {
 	}
 }
 
-func TestSTSCall(t *testing.T) {
+func TestSTSCallerIdentity(t *testing.T) {
 	tests := []struct {
 		name              string
 		authHeader        string
@@ -82,13 +82,13 @@ func TestSTSCall(t *testing.T) {
 		{
 			name:              "No Authorization header - uses default (invalid key)",
 			authHeader:        "",
-			expectedAccessKey: "AKIAI44QH8DHBEXAMPLE",
+			expectedAccessKey: "",
 			expectedAccountID: "000000000000",
 		},
 		{
 			name:              "Invalid Authorization header format - uses default",
 			authHeader:        "Bearer some-token",
-			expectedAccessKey: "AKIAI44QH8DHBEXAMPLE",
+			expectedAccessKey: "",
 			expectedAccountID: "000000000000",
 		},
 	}
@@ -105,7 +105,7 @@ func TestSTSCall(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			// Call the handler
-			stsCall(rr, req)
+			stsCallerIdentityCall(rr, req)
 
 			// Check status code
 			if status := rr.Code; status != http.StatusOK {
@@ -149,12 +149,12 @@ func TestSTSCall(t *testing.T) {
 	}
 }
 
-func TestSTSCallXMLStructure(t *testing.T) {
+func TestSTSCallerIdentityXMLStructure(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc")
 
 	rr := httptest.NewRecorder()
-	stsCall(rr, req)
+	stsCallerIdentityCall(rr, req)
 
 	body := rr.Body.String()
 
@@ -186,12 +186,140 @@ func BenchmarkDecodeARN(b *testing.B) {
 	}
 }
 
-func BenchmarkSTSCall(b *testing.B) {
+func BenchmarkSTSCallerIdentity(b *testing.B) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc")
 
 	for i := 0; i < b.N; i++ {
 		rr := httptest.NewRecorder()
-		stsCall(rr, req)
+		stsCallerIdentityCall(rr, req)
+	}
+}
+
+
+func TestSTSKeyInfo(t *testing.T) {
+	tests := []struct {
+		name              string
+		accessKeyParam    string
+		expectedAccessKey string
+		expectedAccountID string
+	}{
+		{
+			name:              "Valid AccessKeyId - AKIAZOXKDENHR2JTNJLI",
+			accessKeyParam:    "AKIAZOXKDENHR2JTNJLI",
+			expectedAccessKey: "AKIAZOXKDENHR2JTNJLI",
+			expectedAccountID: "650104742735",
+		},
+		{
+			name:              "Valid AccessKeyId - AKIASIFCFAPDEMQNV3SO",
+			accessKeyParam:    "AKIASIFCFAPDEMQNV3SO",
+			expectedAccessKey: "AKIASIFCFAPDEMQNV3SO",
+			expectedAccountID: "154958889926",
+		},
+		{
+			name:              "Valid AccessKeyId - AKIA5L7HQJMWG3EHBA3J",
+			accessKeyParam:    "AKIA5L7HQJMWG3EHBA3J",
+			expectedAccessKey: "AKIA5L7HQJMWG3EHBA3J",
+			expectedAccountID: "919071640364",
+		},
+		{
+			name:              "No AccessKeyId parameter - uses default",
+			accessKeyParam:    "",
+			expectedAccessKey: "AKIAI44QH8DHBEXAMPLE",
+			expectedAccountID: "000000000000",
+		},
+		{
+			name:              "Invalid AccessKeyId",
+			accessKeyParam:    "AKIAI44QH8DHBEXAMPLE",
+			expectedAccessKey: "AKIAI44QH8DHBEXAMPLE",
+			expectedAccountID: "000000000000",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a test request with query parameter
+			url := "/"
+			if tt.accessKeyParam != "" {
+				url = "/?AccessKeyId=" + tt.accessKeyParam
+			}
+			req := httptest.NewRequest(http.MethodGet, url, nil)
+
+			// Create a response recorder
+			rr := httptest.NewRecorder()
+
+			// Call the handler
+			stsKeyInfoCall(rr, req)
+
+			// Check status code
+			if status := rr.Code; status != http.StatusOK {
+				t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+			}
+
+			// Check Content-Type header
+			contentType := rr.Header().Get("Content-Type")
+			if contentType != "text/xml" {
+				t.Errorf("handler returned wrong content type: got %v want %v", contentType, "text/xml")
+			}
+
+			// Check x-amzn-RequestId header exists
+			requestID := rr.Header().Get("x-amzn-RequestId")
+			if requestID == "" {
+				t.Error("handler did not set x-amzn-RequestId header")
+			}
+
+			// Check response body contains expected values
+			body := rr.Body.String()
+
+			// Check for account ID in response
+			if !strings.Contains(body, tt.expectedAccountID) {
+				t.Errorf("response body does not contain expected account ID %q, got: %s", tt.expectedAccountID, body)
+			}
+
+			// Check for XML structure
+			if !strings.Contains(body, "<GetAccessKeyInfoResponse") {
+				t.Error("response body does not contain GetAccessKeyInfoResponse element")
+			}
+
+			if !strings.Contains(body, "<GetAccessKeyInfoResult>") {
+				t.Error("response body does not contain GetAccessKeyInfoResult element")
+			}
+		})
+	}
+}
+
+func TestSTSKeyInfoXMLStructure(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/?AccessKeyId=AKIAZOXKDENHR2JTNJLI", nil)
+
+	rr := httptest.NewRecorder()
+	stsKeyInfoCall(rr, req)
+
+	body := rr.Body.String()
+
+	// Check for required XML elements
+	requiredElements := []string{
+		"<GetAccessKeyInfoResponse",
+		"<GetAccessKeyInfoResult>",
+		"<Account>",
+		"</GetAccessKeyInfoResult>",
+		"<ResponseMetadata>",
+		"<RequestId>",
+		"</ResponseMetadata>",
+		"</GetAccessKeyInfoResponse>",
+	}
+
+	for _, element := range requiredElements {
+		if !strings.Contains(body, element) {
+			t.Errorf("response body missing required XML element: %q", element)
+		}
+	}
+}
+
+func BenchmarkSTSKeyInfo(b *testing.B) {
+	req := httptest.NewRequest(http.MethodGet, "/?AccessKeyId=AKIAZOXKDENHR2JTNJLI", nil)
+
+	for i := 0; i < b.N; i++ {
+		rr := httptest.NewRecorder()
+		stsKeyInfoCall(rr, req)
 	}
 }
