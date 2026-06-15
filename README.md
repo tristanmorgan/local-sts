@@ -12,8 +12,6 @@ A lightweight mock AWS Security Token Service (STS) server for local development
 - ✅ **GetAccessKeyInfo** - Returns account information for a given access key
 - ✅ **Health Check** - `/health` endpoint for monitoring
 - ✅ **Prometheus Metrics** - `/metrics` endpoint for observability
-- ✅ **Account ID Extraction** - Decodes AWS account IDs from access keys using base32 decoding
-- ✅ **Docker Support** - Ready-to-use container image
 
 ## Installation
 
@@ -154,17 +152,6 @@ go tool cover -html=coverage.out
 ```bash
 go test -bench=. -benchmem
 ```
-
-## How It Works
-
-The server extracts AWS account IDs from access keys using a base32 decoding algorithm:
-
-1. Extracts characters 3-12 from the access key (10 characters)
-2. Decodes using AWS's base32 table
-3. Shifts right by 4 bits and masks with a 40-bit mask
-4. Formats as a 12-digit account ID
-
-Invalid or malformed keys return `000000000000` as the account ID.
 
 ## Dependencies
 

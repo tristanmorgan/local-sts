@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -25,25 +26,19 @@ var (
 	versDisp = flag.Bool("version", false, "Display version")
 )
 
-func decodeARN(access_key_id string) (decode_account_id string) {
+func decodeARN(accessKeyID string) (decodeAccountID string) {
 	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 
 	// Extract characters 3-12 (10 characters)
-	if len(access_key_id) < 13 {
+	if len(accessKeyID) != 20 {
 		return "000000000000"
 	}
-	paddedNo := access_key_id[3:13]
+	paddedNo := accessKeyID[3:13]
 
 	// Base32 decode
 	var decimal uint64 = 0
 	for _, char := range paddedNo {
-		index := -1
-		for i, c := range awsTable {
-			if c == char {
-				index = i
-				break
-			}
-		}
+		index := bytes.IndexByte([]byte(awsTable), byte(char))
 		if index == -1 {
 			return "000000000000"
 		}

@@ -92,30 +92,35 @@ func TestSTSCallerIdentity(t *testing.T) {
 	tests := []struct {
 		name              string
 		authHeader        string
+		expectedARN       string
 		expectedAccessKey string
 		expectedAccountID string
 	}{
 		{
 			name:              "Valid AWS4 Authorization with AKIAZOXKDENHR2JTNJLI",
 			authHeader:        "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host;user-agent;x-amz-date, Signature=abcd",
+			expectedARN:       "arn:aws:iam::650104742735:user/Ivan",
 			expectedAccessKey: "AKIAZOXKDENHR2JTNJLI",
 			expectedAccountID: "650104742735",
 		},
 		{
 			name:              "Valid AWS4 Authorization with AKIASIFCFAPDEMQNV3SO",
 			authHeader:        "AWS4-HMAC-SHA256 Credential=AKIASIFCFAPDEMQNV3SO/20160126/us-east-1/sts/aws4_request, SignedHeaders=host;user-agent;x-amz-date, Signature=1234",
+			expectedARN:       "arn:aws:iam::154958889926:user/Peggy",
 			expectedAccessKey: "AKIASIFCFAPDEMQNV3SO",
 			expectedAccountID: "154958889926",
 		},
 		{
 			name:              "No Authorization header - uses default (invalid key)",
 			authHeader:        "",
+			expectedARN:       "arn:aws:iam::000000000000:user/Invalid",
 			expectedAccessKey: "",
 			expectedAccountID: "000000000000",
 		},
 		{
 			name:              "Invalid Authorization header format - uses default",
 			authHeader:        "Bearer some-token",
+			expectedARN:       "arn:aws:iam::000000000000:user/Invalid",
 			expectedAccessKey: "",
 			expectedAccountID: "000000000000",
 		},
@@ -170,8 +175,8 @@ func TestSTSCallerIdentity(t *testing.T) {
 				t.Error("response body does not contain GetCallerIdentityResponse element")
 			}
 
-			if !strings.Contains(body, "<Arn>arn:aws:iam::") {
-				t.Error("response body does not contain ARN element")
+			if !strings.Contains(body, tt.expectedARN) {
+				t.Errorf("response body does not contain ARN %q", tt.expectedARN)
 			}
 		})
 	}
