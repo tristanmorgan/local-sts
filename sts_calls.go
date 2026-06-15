@@ -51,12 +51,18 @@ const keyInfoTemplate = `<GetAccessKeyInfoResponse xmlns="https://sts.amazonaws.
   </ResponseMetadata>
 </GetAccessKeyInfoResponse>`
 
-// ResponseVars holds the template variables for STS API responses.
-type ResponseVars struct {
+// CallerIDVars holds the template variables for STS GetCallerIdentity API responses.
+type CallerIDVars struct {
 	AccountID string
 	AccessKey string
 	RequestID string
 	UserStrng string
+}
+
+// KeyInfoVars holds the template variables for STS GetAccessKeyInfo API responses.
+type KeyInfoVars struct {
+	AccountID string
+	RequestID string
 }
 
 func getFakeUser(accessKey string) (name string) {
@@ -66,11 +72,10 @@ func getFakeUser(accessKey string) (name string) {
 	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 	bstr := []byte(accessKey)
 	index := bytes.IndexByte([]byte(awsTable), byte(bstr[len(bstr)-1]))
-	if index > 16 {
-		index -= 16
-	} else if index < 0 {
+	if index < 0 {
 		return "Invalid"
 	}
+	index = index & 0x0f
 	return UserNames[index]
 }
 
@@ -116,7 +121,7 @@ func stsCallerIdentityCall(w http.ResponseWriter, req *http.Request) {
 	accountID := decodeARN(accessKey)
 	userStr := getFakeUser(accessKey)
 
-	respVar := ResponseVars{accountID, accessKey, requestID, userStr}
+	respVar := CallerIDVars{accountID, accessKey, requestID, userStr}
 	tmpl, err := template.New("resp").Parse(UserIDTemplate)
 	if err != nil {
 		panic(err)
@@ -136,7 +141,7 @@ func stsKeyInfoCall(w http.ResponseWriter, req *http.Request) {
 	accessKey := req.FormValue("AccessKeyId")
 	accountID := decodeARN(accessKey)
 
-	respVar := ResponseVars{accountID, accessKey, requestID, "user"}
+	respVar := KeyInfoVars{accountID, requestID}
 	tmpl, err := template.New("resp").Parse(keyInfoTemplate)
 	if err != nil {
 		panic(err)

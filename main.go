@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"runtime"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -30,7 +31,7 @@ func decodeARN(accessKeyID string) (decodeAccountID string) {
 	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 
 	// Extract characters 3-12 (10 characters)
-	if len(accessKeyID) != 20 {
+	if match, err := regexp.Match("A[K,S]IA[A-Z234567]{16}", []byte(accessKeyID)); err != nil || !match {
 		return "000000000000"
 	}
 	paddedNo := accessKeyID[3:13]
@@ -39,9 +40,6 @@ func decodeARN(accessKeyID string) (decodeAccountID string) {
 	var decimal uint64 = 0
 	for _, char := range paddedNo {
 		index := bytes.IndexByte([]byte(awsTable), byte(char))
-		if index == -1 {
-			return "000000000000"
-		}
 		decimal = (decimal << 5) + uint64(index)
 	}
 
