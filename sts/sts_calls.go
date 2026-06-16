@@ -1,7 +1,8 @@
-package main
+package sts
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -9,6 +10,30 @@ import (
 
 	"github.com/google/uuid"
 )
+
+func decodeARN(accessKeyID string) (decodeAccountID string) {
+	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+
+	// Extract characters 3-12 (10 characters)
+	if match, err := regexp.Match("A[K,S]IA[A-Z234567]{16}", []byte(accessKeyID)); err != nil || !match {
+		return "000000000000"
+	}
+	paddedNo := accessKeyID[3:13]
+
+	// Base32 decode
+	var decimal uint64 = 0
+	for _, char := range paddedNo {
+		index := bytes.IndexByte([]byte(awsTable), byte(char))
+		decimal = (decimal << 5) + uint64(index)
+	}
+
+	// Shift right by 4 bits and mask with 40-bit mask
+	mask := uint64((1 << 40) - 1)
+	decimal = (decimal >> 4) & mask
+
+	// Format as 12-digit string with leading zeros
+	return fmt.Sprintf("%012d", decimal)
+}
 
 // UserNames contains a list of common cryptographic protocol participant names.
 var UserNames = [...]string{
@@ -79,28 +104,8 @@ func getFakeUser(accessKey string) (name string) {
 	return UserNames[index]
 }
 
-func stsCall(w http.ResponseWriter, req *http.Request) {
-	switch req.Method {
-	case http.MethodPost:
-		err := req.ParseForm()
-		if err != nil {
-			http.Error(w, "Form Validadtion Error", http.StatusBadRequest)
-		}
-		action := req.FormValue("Action")
-		switch action {
-		case "GetCallerIdentity":
-			stsCallerIdentityCall(w, req)
-		case "GetAccessKeyInfo":
-			stsKeyInfoCall(w, req)
-		default:
-			http.Error(w, "Action Not Allowed", http.StatusBadRequest)
-		}
-	default:
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func stsCallerIdentityCall(w http.ResponseWriter, req *http.Request) {
+// GetCallerIdentity handles API calls to GetCallerIdentity
+func GetCallerIdentity(w http.ResponseWriter, req *http.Request) {
 	// Action=GetCallerIdentity&Version=2011-06-15
 	requestID := uuid.New().String()
 	w.Header().Set("x-amzn-RequestId", requestID)
@@ -132,7 +137,8 @@ func stsCallerIdentityCall(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func stsKeyInfoCall(w http.ResponseWriter, req *http.Request) {
+// GetAccessKeyInfo handles API calls to GetAccessKeyInfo
+func GetAccessKeyInfo(w http.ResponseWriter, req *http.Request) {
 	requestID := uuid.New().String()
 	w.Header().Set("x-amzn-RequestId", requestID)
 	w.Header().Set("Content-Type", "text/xml")

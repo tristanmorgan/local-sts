@@ -1,4 +1,4 @@
-package main
+package sts
 
 import (
 	"net/http"
@@ -7,88 +7,67 @@ import (
 	"testing"
 )
 
-func TestSTSCall(t *testing.T) {
+func TestDecodeARN(t *testing.T) {
 	tests := []struct {
-		name           string
-		method         string
-		url            string
-		formData       string
-		authHeader     string
-		expectedStatus int
-		expectedBody   string
+		name       string
+		accessKey  string
+		expectedID string
 	}{
 		{
-			name:           "POST routes to GetCallerIdentity",
-			method:         http.MethodPost,
-			url:            "/",
-			formData:       "Action=GetCallerIdentity",
-			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
-			expectedStatus: http.StatusOK,
-			expectedBody:   "<GetCallerIdentityResponse",
+			name:       "Valid access key - AKIAZOXKDENHR2JTNJLI",
+			accessKey:  "AKIAZOXKDENHR2JTNJLI",
+			expectedID: "650104742735",
 		},
 		{
-			name:           "POST routes to GetAccessKeyInfo",
-			method:         http.MethodPost,
-			url:            "/",
-			formData:       "Action=GetAccessKeyInfo&AccessKeyId=AKIAZOXKDENHR2JTNJLI",
-			expectedStatus: http.StatusOK,
-			expectedBody:   "<GetAccessKeyInfoResponse",
+			name:       "Valid access key - AKIASIFCFAPDEMQNV3SO",
+			accessKey:  "AKIASIFCFAPDEMQNV3SO",
+			expectedID: "154958889926",
 		},
 		{
-			name:           "PUT returns Method Not Allowed",
-			method:         http.MethodPut,
-			url:            "/",
-			formData:       "",
-			expectedStatus: http.StatusMethodNotAllowed,
-			expectedBody:   "Method Not Allowed",
+			name:       "Valid access key - AKIA5L7HQJMWG3EHBA3J",
+			accessKey:  "AKIA5L7HQJMWG3EHBA3J",
+			expectedID: "919071640364",
 		},
 		{
-			name:           "DELETE returns Method Not Allowed",
-			method:         http.MethodDelete,
-			url:            "/",
-			formData:       "",
-			expectedStatus: http.StatusMethodNotAllowed,
-			expectedBody:   "Method Not Allowed",
+			name:       "Invalid access key - AKIAI44QH8DHBEXAMPLE",
+			accessKey:  "AKIAI44QH8DHBEXAMPLE",
+			expectedID: "000000000000",
 		},
 		{
-			name:           "PATCH returns Method Not Allowed",
-			method:         http.MethodPatch,
-			url:            "/",
-			formData:       "",
-			expectedStatus: http.StatusMethodNotAllowed,
-			expectedBody:   "Method Not Allowed",
+			name:       "Short access key",
+			accessKey:  "AKIA",
+			expectedID: "000000000000",
+		},
+		{
+			name:       "Empty access key",
+			accessKey:  "",
+			expectedID: "000000000000",
+		},
+		{
+			name:       "Access key with invalid characters",
+			accessKey:  "AKIA!!!INVALID!!!",
+			expectedID: "000000000000",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var req *http.Request
-			if tt.formData != "" {
-				req = httptest.NewRequest(tt.method, tt.url, strings.NewReader(tt.formData))
-				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			} else {
-				req = httptest.NewRequest(tt.method, tt.url, nil)
-			}
-			if tt.authHeader != "" {
-				req.Header.Set("Authorization", tt.authHeader)
-			}
-
-			rr := httptest.NewRecorder()
-			stsCall(rr, req)
-
-			if status := rr.Code; status != tt.expectedStatus {
-				t.Errorf("handler returned wrong status code: got %v want %v", status, tt.expectedStatus)
-			}
-
-			body := rr.Body.String()
-			if !strings.Contains(body, tt.expectedBody) {
-				t.Errorf("response body does not contain expected content %q, got: %s", tt.expectedBody, body)
+			result := decodeARN(tt.accessKey)
+			if result != tt.expectedID {
+				t.Errorf("decodeARN(%q) = %q, want %q", tt.accessKey, result, tt.expectedID)
 			}
 		})
 	}
 }
 
-func TestSTSCallerIdentity(t *testing.T) {
+func BenchmarkDecodeARN(b *testing.B) {
+	accessKey := "AKIAZOXKDENHR2JTNJLI"
+	for i := 0; i < b.N; i++ {
+		decodeARN(accessKey)
+	}
+}
+
+func TestGetCallerIdentity(t *testing.T) {
 	tests := []struct {
 		name              string
 		authHeader        string
@@ -138,7 +117,7 @@ func TestSTSCallerIdentity(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			// Call the handler
-			stsCallerIdentityCall(rr, req)
+			GetCallerIdentity(rr, req)
 
 			// Check status code
 			if status := rr.Code; status != http.StatusOK {
@@ -182,12 +161,12 @@ func TestSTSCallerIdentity(t *testing.T) {
 	}
 }
 
-func TestSTSCallerIdentityXMLStructure(t *testing.T) {
+func TestGetCallerIdentityXMLStructure(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc")
 
 	rr := httptest.NewRecorder()
-	stsCallerIdentityCall(rr, req)
+	GetCallerIdentity(rr, req)
 
 	body := rr.Body.String()
 
@@ -212,7 +191,7 @@ func TestSTSCallerIdentityXMLStructure(t *testing.T) {
 	}
 }
 
-func TestSTSKeyInfo(t *testing.T) {
+func TestGetAccessKeyInfo(t *testing.T) {
 	tests := []struct {
 		name              string
 		accessKeyParam    string
@@ -265,7 +244,7 @@ func TestSTSKeyInfo(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			// Call the handler
-			stsKeyInfoCall(rr, req)
+			GetAccessKeyInfo(rr, req)
 
 			// Check status code
 			if status := rr.Code; status != http.StatusOK {
@@ -304,13 +283,13 @@ func TestSTSKeyInfo(t *testing.T) {
 	}
 }
 
-func TestSTSKeyInfoXMLStructure(t *testing.T) {
+func TestGetAccessKeyInfoXMLStructure(t *testing.T) {
 	formData := "AccessKeyId=AKIAZOXKDENHR2JTNJLI"
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(formData))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	rr := httptest.NewRecorder()
-	stsKeyInfoCall(rr, req)
+	GetAccessKeyInfo(rr, req)
 
 	body := rr.Body.String()
 
@@ -333,23 +312,23 @@ func TestSTSKeyInfoXMLStructure(t *testing.T) {
 	}
 }
 
-func BenchmarkSTSCallerIdentity(b *testing.B) {
+func BenchmarkGetCallerIdentity(b *testing.B) {
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc")
 
 	for i := 0; i < b.N; i++ {
 		rr := httptest.NewRecorder()
-		stsCallerIdentityCall(rr, req)
+		GetCallerIdentity(rr, req)
 	}
 }
 
-func BenchmarkSTSKeyInfo(b *testing.B) {
+func BenchmarkGetAccessKeyInfo(b *testing.B) {
 	formData := "AccessKeyId=AKIAZOXKDENHR2JTNJLI"
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(formData))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	for i := 0; i < b.N; i++ {
 		rr := httptest.NewRecorder()
-		stsKeyInfoCall(rr, req)
+		GetAccessKeyInfo(rr, req)
 	}
 }

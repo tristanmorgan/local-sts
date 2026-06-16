@@ -1,19 +1,18 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"runtime"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/tristanmorgan/local-sts/sts"
 )
 
 // Version number constant.
@@ -27,28 +26,25 @@ var (
 	versDisp = flag.Bool("version", false, "Display version")
 )
 
-func decodeARN(accessKeyID string) (decodeAccountID string) {
-	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
-
-	// Extract characters 3-12 (10 characters)
-	if match, err := regexp.Match("A[K,S]IA[A-Z234567]{16}", []byte(accessKeyID)); err != nil || !match {
-		return "000000000000"
+func stsCall(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodPost:
+		err := req.ParseForm()
+		if err != nil {
+			http.Error(w, "Form Validadtion Error", http.StatusBadRequest)
+		}
+		action := req.FormValue("Action")
+		switch action {
+		case "GetCallerIdentity":
+			sts.GetCallerIdentity(w, req)
+		case "GetAccessKeyInfo":
+			sts.GetAccessKeyInfo(w, req)
+		default:
+			http.Error(w, "Action Not Allowed", http.StatusBadRequest)
+		}
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
-	paddedNo := accessKeyID[3:13]
-
-	// Base32 decode
-	var decimal uint64 = 0
-	for _, char := range paddedNo {
-		index := bytes.IndexByte([]byte(awsTable), byte(char))
-		decimal = (decimal << 5) + uint64(index)
-	}
-
-	// Shift right by 4 bits and mask with 40-bit mask
-	mask := uint64((1 << 40) - 1)
-	decimal = (decimal >> 4) & mask
-
-	// Format as 12-digit string with leading zeros
-	return fmt.Sprintf("%012d", decimal)
 }
 
 func health(w http.ResponseWriter, req *http.Request) {
