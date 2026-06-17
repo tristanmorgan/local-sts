@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 	"text/template"
 
 	"github.com/google/uuid"
@@ -55,11 +56,21 @@ var UserNames = [...]string{
 	"Victor",
 }
 
-// UserIDTemplate is the XML template for GetCallerIdentity responses.
-const UserIDTemplate = `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+const userIDTemplate = `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
   <GetCallerIdentityResult>
     <Arn>arn:aws:iam::{{ .AccountID }}:user/{{ .UserStrng }}</Arn>
     <UserId>{{ .AccessKey }}</UserId>
+    <Account>{{ .AccountID }}</Account>
+  </GetCallerIdentityResult>
+  <ResponseMetadata>
+    <RequestId>{{ .RequestID }}</RequestId>
+  </ResponseMetadata>
+</GetCallerIdentityResponse>`
+
+const roleIDTemplate = `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <GetCallerIdentityResult>
+    <Arn>arn:aws:sts::{{ .AccountID }}:assumed-role/role-name/{{ .UserStrng }}</Arn>
+    <UserId>{{ .AccessKey }}:{{ .UserStrng }}</UserId>
     <Account>{{ .AccountID }}</Account>
   </GetCallerIdentityResult>
   <ResponseMetadata>
@@ -117,7 +128,7 @@ func GetCallerIdentity(w http.ResponseWriter, req *http.Request) {
 	authHeader := req.Header.Get("Authorization")
 	if authHeader != "" {
 		// Use regex to extract access key from Credential=<ACCESS_KEY>/...
-		re := regexp.MustCompile(`Credential=([A-Z0-9]+)/`)
+		re := regexp.MustCompile(`Credential=(A[K,S]IA[A-Z234567]{16})/`)
 		matches := re.FindStringSubmatch(authHeader)
 		if len(matches) > 1 {
 			accessKey = matches[1]
@@ -125,9 +136,15 @@ func GetCallerIdentity(w http.ResponseWriter, req *http.Request) {
 	}
 	accountID := decodeARN(accessKey)
 	userStr := getFakeUser(accessKey)
+	templateStr := userIDTemplate
+
+	if strings.HasPrefix(accessKey, "ASIA") {
+		accessKey = "AROA" + accessKey[4:]
+		templateStr = roleIDTemplate
+	}
 
 	respVar := CallerIDVars{accountID, accessKey, requestID, userStr}
-	tmpl, err := template.New("resp").Parse(UserIDTemplate)
+	tmpl, err := template.New("resp").Parse(templateStr)
 	if err != nil {
 		panic(err)
 	}

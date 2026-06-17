@@ -29,6 +29,11 @@ func TestDecodeARN(t *testing.T) {
 			expectedID: "919071640364",
 		},
 		{
+			name:       "Valid session key - ASIATMOLCWJCZGCXWWRF",
+			accessKey:  "ASIATMOLCWJCZGCXWWRF",
+			expectedID: "232891003461",
+		},
+		{
 			name:       "Invalid access key - AKIAI44QH8DHBEXAMPLE",
 			accessKey:  "AKIAI44QH8DHBEXAMPLE",
 			expectedID: "000000000000",
@@ -88,6 +93,13 @@ func TestGetCallerIdentity(t *testing.T) {
 			expectedARN:       "arn:aws:iam::154958889926:user/Peggy",
 			expectedAccessKey: "AKIASIFCFAPDEMQNV3SO",
 			expectedAccountID: "154958889926",
+		},
+		{
+			name:              "Valid AWS4 Authorization with ASIADVUE6CL3HNEWV6SC",
+			authHeader:        "AWS4-HMAC-SHA256 Credential=ASIADVUE6CL3HNEWV6SC/20160126/us-east-1/sts/aws4_request, SignedHeaders=host;user-agent;x-amz-date, Signature=WXYZ",
+			expectedARN:       "arn:aws:sts::252608123638:assumed-role/role-name/Carol",
+			expectedAccessKey: "AROADVUE6CL3HNEWV6SC",
+			expectedAccountID: "252608123638",
 		},
 		{
 			name:              "No Authorization header - uses default (invalid key)",
