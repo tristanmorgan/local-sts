@@ -10,6 +10,9 @@ A lightweight mock AWS Security Token Service (STS) server for local development
 
 - ✅ **GetCallerIdentity** - Returns identity information from AWS credentials
 - ✅ **GetAccessKeyInfo** - Returns account information for a given access key
+- ✅ **GetSessionToken** - Returns temporary security credentials for AWS API requests
+- ✅ **GetFederationToken** - Returns temporary security credentials for federated users
+- ✅ **AssumeRole** - Returns temporary security credentials for assuming an IAM role
 - ✅ **Health Check** - `/health` endpoint for monitoring
 - ✅ **Prometheus Metrics** - `/metrics` endpoint for observability
 
@@ -110,6 +113,104 @@ curl -X POST "http://localhost/" \
 </GetAccessKeyInfoResponse>
 ```
 
+### GetSessionToken
+
+Returns temporary security credentials for AWS API requests. Session tokens are valid for 12 hours.
+
+**Request:**
+```bash
+curl -X POST "http://localhost/" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Authorization: AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc" \
+  -d "Action=GetSessionToken"
+```
+
+**Response:**
+```xml
+<GetSessionTokenResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <GetSessionTokenResult>
+    <Credentials>
+      <AccessKeyId>ASIAZOXKDENHR2JTNJLI</AccessKeyId>
+      <SessionToken>base64-encoded-session-token</SessionToken>
+      <SecretAccessKey>base64-encoded-secret-key</SecretAccessKey>
+      <Expiration>2026-06-18T12:30:00Z</Expiration>
+    </Credentials>
+  </GetSessionTokenResult>
+  <ResponseMetadata>
+    <RequestId>uuid-generated-request-id</RequestId>
+  </ResponseMetadata>
+</GetSessionTokenResponse>
+```
+
+### GetFederationToken
+
+Returns temporary security credentials for federated users. Federation tokens are valid for 1 hour.
+
+**Request:**
+```bash
+curl -X POST "http://localhost/" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Authorization: AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc" \
+  -d "Action=GetFederationToken"
+```
+
+**Response:**
+```xml
+<GetFederationTokenResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <GetFederationTokenResult>
+    <Credentials>
+      <SecretAccessKey>base64-encoded-secret-key</SecretAccessKey>
+      <SessionToken>base64-encoded-session-token</SessionToken>
+      <Expiration>2026-06-18T01:30:00Z</Expiration>
+      <AccessKeyId>ASIAZOXKDENHR2JTNJLI</AccessKeyId>
+    </Credentials>
+    <FederatedUser>
+      <Arn>arn:aws:sts::650104742735:federated-user/Alice</Arn>
+      <FederatedUserId>650104742735:Alice</FederatedUserId>
+    </FederatedUser>
+    <PackedPolicySize>6</PackedPolicySize>
+  </GetFederationTokenResult>
+  <ResponseMetadata>
+    <RequestId>uuid-generated-request-id</RequestId>
+  </ResponseMetadata>
+</GetFederationTokenResponse>
+```
+
+### AssumeRole
+
+Returns temporary security credentials for assuming an IAM role. Assumed role credentials are valid for 1 hour.
+
+**Request:**
+```bash
+curl -X POST "http://localhost/" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H "Authorization: AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc" \
+  -d "Action=AssumeRole"
+```
+
+**Response:**
+```xml
+<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <AssumeRoleResult>
+    <SourceIdentity>Alice</SourceIdentity>
+    <AssumedRoleUser>
+      <Arn>arn:aws:sts::650104742735:assumed-role/demo/TestAR</Arn>
+      <AssumedRoleId>AROAZOXKDENHR2JTNJLI:TestAR</AssumedRoleId>
+    </AssumedRoleUser>
+    <Credentials>
+      <AccessKeyId>ASIAZOXKDENHR2JTNJLI</AccessKeyId>
+      <SecretAccessKey>base64-encoded-secret-key</SecretAccessKey>
+      <SessionToken>base64-encoded-session-token</SessionToken>
+      <Expiration>2026-06-18T01:30:00Z</Expiration>
+    </Credentials>
+    <PackedPolicySize>6</PackedPolicySize>
+  </AssumeRoleResult>
+  <ResponseMetadata>
+    <RequestId>uuid-generated-request-id</RequestId>
+  </ResponseMetadata>
+</AssumeRoleResponse>
+```
+
 ### Health Check
 
 **Request:**
@@ -130,6 +231,14 @@ Prometheus-compatible metrics endpoint.
 ```bash
 curl http://localhost/metrics
 ```
+
+## Credential Expiration Times
+
+The mock STS server returns temporary credentials with the following expiration times:
+
+- **GetSessionToken**: 12 hours
+- **GetFederationToken**: 1 hour
+- **AssumeRole**: 1 hour
 
 ## Development
 
