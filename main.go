@@ -39,8 +39,10 @@ func stsCall(w http.ResponseWriter, req *http.Request) {
 			sts.GetCallerIdentity(w, req)
 		case "GetAccessKeyInfo":
 			sts.GetAccessKeyInfo(w, req)
-		case "GetSessionToken", "GetFederationToken":
+		case "GetSessionToken":
 			sts.GetSessionToken(w, req)
+		case "GetFederationToken":
+			sts.GetFederationToken(w, req)
 		case "AssumeRole":
 			sts.AssumeRole(w, req)
 		default:

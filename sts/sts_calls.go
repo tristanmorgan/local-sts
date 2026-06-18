@@ -2,6 +2,7 @@ package sts
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -115,6 +116,22 @@ func getFakeUser(accessKey string) (name string) {
 	return UserNames[index]
 }
 
+var errPermissionDenied = errors.New("permission denied")
+
+// GetAuthorisation extracts the access key from the Authorization headers.
+func GetAuthorisation(req *http.Request) (accessKey string, err error) {
+	authHeader := req.Header.Get("Authorization")
+	if authHeader != "" {
+		// Use regex to extract access key from Credential=<ACCESS_KEY>/...
+		re := regexp.MustCompile(`Credential=(A[K,S]IA[A-Z234567]{16})/`)
+		matches := re.FindStringSubmatch(authHeader)
+		if len(matches) > 1 {
+			return matches[1], nil
+		}
+	}
+	return "", errPermissionDenied
+}
+
 // GetCallerIdentity handles API calls to GetCallerIdentity
 func GetCallerIdentity(w http.ResponseWriter, req *http.Request) {
 	// Action=GetCallerIdentity&Version=2011-06-15
@@ -124,15 +141,10 @@ func GetCallerIdentity(w http.ResponseWriter, req *http.Request) {
 
 	// Extract accessKey from Authorization header
 	// Format: AWS4-HMAC-SHA256 Credential=AKIAI44QH8DHBEXAMPLE/20160126/us-east-1/sts/aws4_request,...
-	accessKey := ""
-	authHeader := req.Header.Get("Authorization")
-	if authHeader != "" {
-		// Use regex to extract access key from Credential=<ACCESS_KEY>/...
-		re := regexp.MustCompile(`Credential=(A[K,S]IA[A-Z234567]{16})/`)
-		matches := re.FindStringSubmatch(authHeader)
-		if len(matches) > 1 {
-			accessKey = matches[1]
-		}
+	accessKey, err := GetAuthorisation(req)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 	accountID := decodeARN(accessKey)
 	userStr := getFakeUser(accessKey)

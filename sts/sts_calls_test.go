@@ -79,6 +79,7 @@ func TestGetCallerIdentity(t *testing.T) {
 		expectedARN       string
 		expectedAccessKey string
 		expectedAccountID string
+		expectedStatus    int
 	}{
 		{
 			name:              "Valid AWS4 Authorization with AKIAZOXKDENHR2JTNJLI",
@@ -86,6 +87,7 @@ func TestGetCallerIdentity(t *testing.T) {
 			expectedARN:       "arn:aws:iam::650104742735:user/Ivan",
 			expectedAccessKey: "AKIAZOXKDENHR2JTNJLI",
 			expectedAccountID: "650104742735",
+			expectedStatus:    http.StatusOK,
 		},
 		{
 			name:              "Valid AWS4 Authorization with AKIASIFCFAPDEMQNV3SO",
@@ -93,6 +95,7 @@ func TestGetCallerIdentity(t *testing.T) {
 			expectedARN:       "arn:aws:iam::154958889926:user/Peggy",
 			expectedAccessKey: "AKIASIFCFAPDEMQNV3SO",
 			expectedAccountID: "154958889926",
+			expectedStatus:    http.StatusOK,
 		},
 		{
 			name:              "Valid AWS4 Authorization with ASIADVUE6CL3HNEWV6SC",
@@ -100,6 +103,7 @@ func TestGetCallerIdentity(t *testing.T) {
 			expectedARN:       "arn:aws:sts::252608123638:assumed-role/role-name/Carol",
 			expectedAccessKey: "AROADVUE6CL3HNEWV6SC",
 			expectedAccountID: "252608123638",
+			expectedStatus:    http.StatusOK,
 		},
 		{
 			name:              "No Authorization header - uses default (invalid key)",
@@ -107,6 +111,7 @@ func TestGetCallerIdentity(t *testing.T) {
 			expectedARN:       "arn:aws:iam::000000000000:user/Invalid",
 			expectedAccessKey: "",
 			expectedAccountID: "000000000000",
+			expectedStatus:    http.StatusUnauthorized,
 		},
 		{
 			name:              "Invalid Authorization header format - uses default",
@@ -114,6 +119,7 @@ func TestGetCallerIdentity(t *testing.T) {
 			expectedARN:       "arn:aws:iam::000000000000:user/Invalid",
 			expectedAccessKey: "",
 			expectedAccountID: "000000000000",
+			expectedStatus:    http.StatusUnauthorized,
 		},
 	}
 
@@ -132,8 +138,12 @@ func TestGetCallerIdentity(t *testing.T) {
 			GetCallerIdentity(rr, req)
 
 			// Check status code
-			if status := rr.Code; status != http.StatusOK {
-				t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+			if status := rr.Code; status != tt.expectedStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v", status, tt.expectedStatus)
+			}
+
+			if tt.expectedStatus == http.StatusUnauthorized {
+				return
 			}
 
 			// Check Content-Type header
@@ -342,5 +352,58 @@ func BenchmarkGetAccessKeyInfo(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rr := httptest.NewRecorder()
 		GetAccessKeyInfo(rr, req)
+	}
+}
+
+func TestGetFakeUser(t *testing.T) {
+	tests := []struct {
+		name         string
+		accessKey    string
+		expectedUser string
+	}{
+		{
+			name:         "Access key ending with I - Ivan",
+			accessKey:    "AKIAZOXKDENHR2JTNJLI",
+			expectedUser: "Ivan",
+		},
+		{
+			name:         "Access key ending with O - Peggy",
+			accessKey:    "AKIASIFCFAPDEMQNV3SO",
+			expectedUser: "Peggy",
+		},
+		{
+			name:         "Access key ending with J - Judy",
+			accessKey:    "AKIA5L7HQJMWG3EHBA3J",
+			expectedUser: "Judy",
+		},
+		{
+			name:         "Access key ending with F - Frank",
+			accessKey:    "ASIADVUE6CL3HNEWV6SF",
+			expectedUser: "Frank",
+		},
+		{
+			name:         "Access key ending with 7 - Victor",
+			accessKey:    "AKIAZOXKDENHR2JTNJL7",
+			expectedUser: "Victor",
+		},
+		{
+			name:         "Empty access key returns Invalid",
+			accessKey:    "",
+			expectedUser: "Invalid",
+		},
+		{
+			name:         "Access key with invalid character returns Invalid",
+			accessKey:    "AKIAZOXKDENHR2JTNJL!",
+			expectedUser: "Invalid",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getFakeUser(tt.accessKey)
+			if result != tt.expectedUser {
+				t.Errorf("getFakeUser(%q) = %q, want %q", tt.accessKey, result, tt.expectedUser)
+			}
+		})
 	}
 }
