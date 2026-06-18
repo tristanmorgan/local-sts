@@ -11,6 +11,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors/version"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tristanmorgan/local-sts/sts"
 )
@@ -21,9 +22,24 @@ const Version = "0.0.1"
 // Homepage url.
 const Homepage = "https://github.com/tristanmorgan/local-sts"
 
+const (
+	promNamespace = "local_sts"
+	promSubsystem = "http"
+)
+
 var (
-	httpAddr = flag.String("listen", ":80", "Listen address")
-	versDisp = flag.Bool("version", false, "Display version")
+	httpAddr    = flag.String("listen", ":80", "Listen address")
+	versDisp    = flag.Bool("version", false, "Display version")
+	actionCount = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: promNamespace,
+		Subsystem: promSubsystem,
+		Name:      "requests_to_action_count",
+	}, []string{"action"})
+	errorCount = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: promNamespace,
+		Subsystem: promSubsystem,
+		Name:      "requests_error_count",
+	}, []string{"error"})
 )
 
 func stsCall(w http.ResponseWriter, req *http.Request) {
@@ -31,9 +47,12 @@ func stsCall(w http.ResponseWriter, req *http.Request) {
 	case http.MethodPost:
 		err := req.ParseForm()
 		if err != nil {
+			errorCount.With(prometheus.Labels{"error": "BadRequest"}).Inc()
 			http.Error(w, "Form Validadtion Error", http.StatusBadRequest)
+			return
 		}
 		action := req.FormValue("Action")
+		actionCount.With(prometheus.Labels{"action": action}).Inc()
 		switch action {
 		case "GetCallerIdentity":
 			sts.GetCallerIdentity(w, req)
@@ -46,14 +65,17 @@ func stsCall(w http.ResponseWriter, req *http.Request) {
 		case "AssumeRole":
 			sts.AssumeRole(w, req)
 		default:
+			errorCount.With(prometheus.Labels{"error": "BadRequest"}).Inc()
 			http.Error(w, "Action Not Allowed", http.StatusBadRequest)
 		}
 	default:
+		errorCount.With(prometheus.Labels{"error": "MethodNotAllowed"}).Inc()
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
 func health(w http.ResponseWriter, req *http.Request) {
+	actionCount.With(prometheus.Labels{"action": "health"}).Inc()
 	w.Header().Set("Server", "local-sts/"+Version+" (+"+Homepage+")")
 	_, _ = io.WriteString(w, "Healthy.\n")
 }
@@ -61,7 +83,7 @@ func health(w http.ResponseWriter, req *http.Request) {
 func main() {
 	flag.Parse()
 
-	prometheus.MustRegister(version.NewCollector("local-sts"))
+	prometheus.MustRegister(version.NewCollector(promNamespace))
 	if *versDisp {
 		fmt.Printf("Version: v%s %s\n", Version, runtime.Version())
 		fmt.Printf("Home Page: %s\n", Homepage)
