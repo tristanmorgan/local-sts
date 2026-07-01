@@ -1,23 +1,26 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"runtime"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	promVersion "github.com/prometheus/common/version"
 	"github.com/tristanmorgan/local-sts/sts"
 )
 
 // Version number constant.
-const Version = "0.0.1"
+//
+//go:embed .version
+var Version string
 
 // Homepage url.
 const Homepage = "https://github.com/tristanmorgan/local-sts"
@@ -83,9 +86,10 @@ func health(w http.ResponseWriter, req *http.Request) {
 func main() {
 	flag.Parse()
 
+	promVersion.Version = Version
 	prometheus.MustRegister(version.NewCollector(promNamespace))
 	if *versDisp {
-		fmt.Printf("Version: v%s %s\n", Version, runtime.Version())
+		fmt.Printf("%s\n", promVersion.Print(promNamespace))
 		fmt.Printf("Home Page: %s\n", Homepage)
 		os.Exit(0)
 	}
