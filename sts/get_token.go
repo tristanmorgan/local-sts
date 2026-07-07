@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/tristanmorgan/local-sts/metrics"
 )
 
 const sessionTokenXML = `<GetSessionTokenResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
@@ -105,6 +107,7 @@ func GetSessionToken(w http.ResponseWriter, req *http.Request) {
 	// Extract accessKey from Authorization header
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
+		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -141,6 +144,7 @@ func AssumeRole(w http.ResponseWriter, req *http.Request) {
 	// Extract accessKey from Authorization header
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
+		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -184,6 +188,7 @@ func GetFederationToken(w http.ResponseWriter, req *http.Request) {
 	// Extract accessKey from Authorization header
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
+		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}

@@ -11,6 +11,8 @@ import (
 	"text/template"
 
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/tristanmorgan/local-sts/metrics"
 )
 
 func decodeARN(accessKeyID string) (decodeAccountID string) {
@@ -143,6 +145,7 @@ func GetCallerIdentity(w http.ResponseWriter, req *http.Request) {
 	// Format: AWS4-HMAC-SHA256 Credential=AKIAI44QH8DHBEXAMPLE/20160126/us-east-1/sts/aws4_request,...
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
+		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
