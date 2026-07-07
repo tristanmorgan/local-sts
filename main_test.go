@@ -88,6 +88,42 @@ func TestSTSCall(t *testing.T) {
 			expectedBody:   "<AssumeRoleResponse",
 		},
 		{
+			name:           "POST routes to GetUser",
+			method:         http.MethodPost,
+			url:            "/",
+			formData:       "Action=GetUser",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/iam/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "<GetUserResponse",
+		},
+		{
+			name:           "POST routes to GetRole",
+			method:         http.MethodPost,
+			url:            "/",
+			formData:       "Action=GetRole",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/iam/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "<GetRoleResponse",
+		},
+		{
+			name:           "POST routes to ListUsers",
+			method:         http.MethodPost,
+			url:            "/",
+			formData:       "Action=ListUsers",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/iam/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "<ListUsersResponse",
+		},
+		{
+			name:           "POST routes to ListAccessKeys",
+			method:         http.MethodPost,
+			url:            "/",
+			formData:       "Action=ListAccessKeys",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/iam/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "<ListAccessKeysResponse",
+		},
+		{
 			name:           "POST with unknown action returns Bad Request",
 			method:         http.MethodPost,
 			url:            "/",
@@ -146,6 +182,106 @@ func TestSTSCall(t *testing.T) {
 			} else {
 				req = httptest.NewRequest(tt.method, tt.url, nil)
 			}
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+
+			rr := httptest.NewRecorder()
+			stsCall(rr, req)
+
+			if status := rr.Code; status != tt.expectedStatus {
+				t.Errorf("handler returned wrong status code: got %v want %v", status, tt.expectedStatus)
+			}
+
+			body := rr.Body.String()
+			if !strings.Contains(body, tt.expectedBody) {
+				t.Errorf("response body does not contain expected content %q, got: %s", tt.expectedBody, body)
+			}
+		})
+	}
+}
+
+func TestSTSCallWithModeRestrictions(t *testing.T) {
+	tests := []struct {
+		name           string
+		stsOnly        bool
+		iamOnly        bool
+		action         string
+		authHeader     string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "STS-only mode allows STS actions",
+			stsOnly:        true,
+			iamOnly:        false,
+			action:         "GetCallerIdentity",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "<GetCallerIdentityResponse",
+		},
+		{
+			name:           "STS-only mode rejects IAM actions",
+			stsOnly:        true,
+			iamOnly:        false,
+			action:         "GetUser",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/iam/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Action Not Allowed",
+		},
+		{
+			name:           "IAM-only mode allows IAM actions",
+			stsOnly:        false,
+			iamOnly:        true,
+			action:         "GetUser",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/iam/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "<GetUserResponse",
+		},
+		{
+			name:           "IAM-only mode rejects STS actions",
+			stsOnly:        false,
+			iamOnly:        true,
+			action:         "GetCallerIdentity",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Action Not Allowed",
+		},
+		{
+			name:           "No mode restriction allows all STS actions",
+			stsOnly:        false,
+			iamOnly:        false,
+			action:         "GetSessionToken",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "<GetSessionTokenResponse",
+		},
+		{
+			name:           "No mode restriction allows all IAM actions",
+			stsOnly:        false,
+			iamOnly:        false,
+			action:         "ListUsers",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/iam/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "<ListUsersResponse",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set mode flags
+			oldStsOnly := *stsOnly
+			oldIamOnly := *iamOnly
+			*stsOnly = tt.stsOnly
+			*iamOnly = tt.iamOnly
+			defer func() {
+				*stsOnly = oldStsOnly
+				*iamOnly = oldIamOnly
+			}()
+
+			formData := "Action=" + tt.action
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(formData))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
 			}
