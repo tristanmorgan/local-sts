@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestDecodeARN(t *testing.T) {
+func TestDecodeAID(t *testing.T) {
 	tests := []struct {
 		name       string
 		accessKey  string
@@ -57,18 +57,18 @@ func TestDecodeARN(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := decodeARN(tt.accessKey)
+			result := DecodeAID(tt.accessKey)
 			if result != tt.expectedID {
-				t.Errorf("decodeARN(%q) = %q, want %q", tt.accessKey, result, tt.expectedID)
+				t.Errorf("DecodeAID(%q) = %q, want %q", tt.accessKey, result, tt.expectedID)
 			}
 		})
 	}
 }
 
-func BenchmarkDecodeARN(b *testing.B) {
+func BenchmarkDecodeAID(b *testing.B) {
 	accessKey := "AKIAZOXKDENHR2JTNJLI"
 	for i := 0; i < b.N; i++ {
-		decodeARN(accessKey)
+		DecodeAID(accessKey)
 	}
 }
 
@@ -85,7 +85,7 @@ func TestGetCallerIdentity(t *testing.T) {
 			name:              "Valid AWS4 Authorization with AKIAZOXKDENHR2JTNJLI",
 			authHeader:        "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host;user-agent;x-amz-date, Signature=abcd",
 			expectedARN:       "arn:aws:iam::650104742735:user/Ivan",
-			expectedAccessKey: "AKIAZOXKDENHR2JTNJLI",
+			expectedAccessKey: "AIDAZOXKDENHR2JTNJLI",
 			expectedAccountID: "650104742735",
 			expectedStatus:    http.StatusOK,
 		},
@@ -93,7 +93,7 @@ func TestGetCallerIdentity(t *testing.T) {
 			name:              "Valid AWS4 Authorization with AKIASIFCFAPDEMQNV3SO",
 			authHeader:        "AWS4-HMAC-SHA256 Credential=AKIASIFCFAPDEMQNV3SO/20160126/us-east-1/sts/aws4_request, SignedHeaders=host;user-agent;x-amz-date, Signature=1234",
 			expectedARN:       "arn:aws:iam::154958889926:user/Peggy",
-			expectedAccessKey: "AKIASIFCFAPDEMQNV3SO",
+			expectedAccessKey: "AIDASIFCFAPDEMQNV3SO",
 			expectedAccountID: "154958889926",
 			expectedStatus:    http.StatusOK,
 		},
@@ -400,9 +400,9 @@ func TestGetFakeUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getFakeUser(tt.accessKey)
+			result := GetFakeUser(tt.accessKey)
 			if result != tt.expectedUser {
-				t.Errorf("getFakeUser(%q) = %q, want %q", tt.accessKey, result, tt.expectedUser)
+				t.Errorf("GetFakeUser(%q) = %q, want %q", tt.accessKey, result, tt.expectedUser)
 			}
 		})
 	}

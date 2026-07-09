@@ -15,7 +15,8 @@ import (
 	"github.com/tristanmorgan/local-sts/metrics"
 )
 
-func decodeARN(accessKeyID string) (decodeAccountID string) {
+// DecodeAID decodes the access key to extract Account ID.
+func DecodeAID(accessKeyID string) (decodeAccountID string) {
 	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 
 	// Extract characters 3-12 (10 characters)
@@ -90,6 +91,15 @@ const keyInfoTemplate = `<GetAccessKeyInfoResponse xmlns="https://sts.amazonaws.
   </ResponseMetadata>
 </GetAccessKeyInfoResponse>`
 
+const errorMessageTemplate = `<ErrorResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <Error>
+    <Type>Sender</Type>
+    <Code>InvalidClientTokenId</Code>
+    <Message>The security token included in the request is invalid.</Message>
+  </Error>
+  <RequestId>{{ .RequestID }}</RequestId>
+</ErrorResponse>`
+
 // CallerIDVars holds the template variables for STS GetCallerIdentity API responses.
 type CallerIDVars struct {
 	AccountID string
@@ -104,7 +114,8 @@ type KeyInfoVars struct {
 	RequestID string
 }
 
-func getFakeUser(accessKey string) (name string) {
+// GetFakeUser picks a "user" based on last digit of access key
+func GetFakeUser(accessKey string) (name string) {
 	if accessKey == "" {
 		return "Invalid"
 	}
@@ -134,6 +145,18 @@ func GetAuthorisation(req *http.Request) (accessKey string, err error) {
 	return "", errPermissionDenied
 }
 
+// UnauthorizedResponse returns a foratted response to unauthorised calls.
+func UnauthorizedResponse(requestID string, w http.ResponseWriter) {
+	respVar := CallerIDVars{"", "", requestID, ""}
+	tmpl, err := template.New("resp").Parse(errorMessageTemplate)
+	if err != nil {
+		panic(err)
+	}
+	b := new(strings.Builder)
+	tmpl.Execute(b, respVar)
+	http.Error(w, b.String(), http.StatusUnauthorized)
+}
+
 // GetCallerIdentity handles API calls to GetCallerIdentity
 func GetCallerIdentity(w http.ResponseWriter, req *http.Request) {
 	// Action=GetCallerIdentity&Version=2011-06-15
@@ -146,16 +169,18 @@ func GetCallerIdentity(w http.ResponseWriter, req *http.Request) {
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		UnauthorizedResponse(requestID, w)
 		return
 	}
-	accountID := decodeARN(accessKey)
-	userStr := getFakeUser(accessKey)
+	accountID := DecodeAID(accessKey)
+	userStr := GetFakeUser(accessKey)
 	templateStr := userIDTemplate
 
 	if strings.HasPrefix(accessKey, "ASIA") {
 		accessKey = "AROA" + accessKey[4:]
 		templateStr = roleIDTemplate
+	} else {
+		accessKey = "AIDA" + accessKey[4:]
 	}
 
 	respVar := CallerIDVars{accountID, accessKey, requestID, userStr}
@@ -177,7 +202,7 @@ func GetAccessKeyInfo(w http.ResponseWriter, req *http.Request) {
 
 	// Extract accessKey from form parameter AccessKeyId
 	accessKey := req.FormValue("AccessKeyId")
-	accountID := decodeARN(accessKey)
+	accountID := DecodeAID(accessKey)
 
 	respVar := KeyInfoVars{accountID, requestID}
 	tmpl, err := template.New("resp").Parse(keyInfoTemplate)

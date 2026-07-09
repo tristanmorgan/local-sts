@@ -31,7 +31,8 @@ func TestGetUser(t *testing.T) {
 			authHeader: "",
 			wantStatus: http.StatusUnauthorized,
 			wantContains: []string{
-				"Unauthorized",
+				"<ErrorResponse",
+				"<Code>InvalidClientTokenId",
 			},
 		},
 		{
@@ -39,7 +40,8 @@ func TestGetUser(t *testing.T) {
 			authHeader: "Bearer invalid",
 			wantStatus: http.StatusUnauthorized,
 			wantContains: []string{
-				"Unauthorized",
+				"<ErrorResponse",
+				"<Code>InvalidClientTokenId",
 			},
 		},
 	}
@@ -104,7 +106,8 @@ func TestGetRole(t *testing.T) {
 			authHeader: "",
 			wantStatus: http.StatusUnauthorized,
 			wantContains: []string{
-				"Unauthorized",
+				"<ErrorResponse",
+				"<Code>InvalidClientTokenId",
 			},
 		},
 		{
@@ -112,7 +115,8 @@ func TestGetRole(t *testing.T) {
 			authHeader: "Basic dXNlcjpwYXNz",
 			wantStatus: http.StatusUnauthorized,
 			wantContains: []string{
-				"Unauthorized",
+				"<ErrorResponse",
+				"<Code>InvalidClientTokenId",
 			},
 		},
 	}

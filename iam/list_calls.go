@@ -1,9 +1,7 @@
 package iam
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -12,51 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tristanmorgan/local-sts/metrics"
+	"github.com/tristanmorgan/local-sts/sts"
 )
-
-func decodeARN(accessKeyID string) (decodeAccountID string) {
-	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
-
-	// Extract characters 3-12 (10 characters)
-	if match, err := regexp.Match("A[K,S]IA[A-Z234567]{16}", []byte(accessKeyID)); err != nil || !match {
-		return "000000000000"
-	}
-	paddedNo := accessKeyID[3:13]
-
-	// Base32 decode
-	var decimal uint64 = 0
-	for _, char := range paddedNo {
-		index := bytes.IndexByte([]byte(awsTable), byte(char))
-		decimal = (decimal << 5) + uint64(index)
-	}
-
-	// Shift right by 4 bits and mask with 40-bit mask
-	mask := uint64((1 << 40) - 1)
-	decimal = (decimal >> 4) & mask
-
-	// Format as 12-digit string with leading zeros
-	return fmt.Sprintf("%012d", decimal)
-}
-
-// UserNames contains a list of common cryptographic protocol participant names.
-var UserNames = [...]string{
-	"Alice",
-	"Bob",
-	"Carol",
-	"Dave",
-	"Eve",
-	"Frank",
-	"Grace",
-	"Heidi",
-	"Ivan",
-	"Judy",
-	"Mallory",
-	"Oscar",
-	"Trent",
-	"Walter",
-	"Peggy",
-	"Victor",
-}
 
 const listUsersTemplate = `<ListUsersResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
  <ListUsersResult>
@@ -110,20 +65,6 @@ type ListAccessKeysVars struct {
 	UserStrng string
 }
 
-func getFakeUser(accessKey string) (name string) {
-	if accessKey == "" {
-		return "Invalid"
-	}
-	awsTable := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
-	bstr := []byte(accessKey)
-	index := bytes.IndexByte([]byte(awsTable), byte(bstr[len(bstr)-1]))
-	if index < 0 {
-		return "Invalid"
-	}
-	index = index & 0x0f
-	return UserNames[index]
-}
-
 var errPermissionDenied = errors.New("permission denied")
 
 // GetAuthorisation extracts the access key from the Authorization headers.
@@ -152,11 +93,11 @@ func ListUsers(w http.ResponseWriter, req *http.Request) {
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		sts.UnauthorizedResponse(requestID, w)
 		return
 	}
-	accountID := decodeARN(accessKey)
-	userStr := getFakeUser(accessKey)
+	accountID := sts.DecodeAID(accessKey)
+	userStr := sts.GetFakeUser(accessKey)
 	if len(accessKey) > 4 {
 		accessKey = "AIDI" + accessKey[4:]
 	}
@@ -181,10 +122,13 @@ func ListAccessKeys(w http.ResponseWriter, req *http.Request) {
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		sts.UnauthorizedResponse(requestID, w)
 		return
 	}
-	userStr := getFakeUser(accessKey)
+	if len(accessKey) > 4 {
+		accessKey = "AKIA" + accessKey[4:]
+	}
+	userStr := sts.GetFakeUser(accessKey)
 
 	respVar := ListAccessKeysVars{accessKey, requestID, userStr}
 	tmpl, err := template.New("resp").Parse(listAccessKeysTemplate)

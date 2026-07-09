@@ -108,7 +108,7 @@ func GetSessionToken(w http.ResponseWriter, req *http.Request) {
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		UnauthorizedResponse(requestID, w)
 		return
 	}
 	accessKey = "ASIA" + accessKey[4:]
@@ -145,13 +145,13 @@ func AssumeRole(w http.ResponseWriter, req *http.Request) {
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		UnauthorizedResponse(requestID, w)
 		return
 	}
 	accessKey = "ASIA" + accessKey[4:]
 
-	accountID := decodeARN(accessKey)
-	userStrng := getFakeUser(accessKey)
+	accountID := DecodeAID(accessKey)
+	userStrng := GetFakeUser(accessKey)
 	roleID := ""
 	if len(accessKey) > 4 {
 		roleID = "AROA" + accessKey[4:]
@@ -189,13 +189,13 @@ func GetFederationToken(w http.ResponseWriter, req *http.Request) {
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		UnauthorizedResponse(requestID, w)
 		return
 	}
 	accessKey = "ASIA" + accessKey[4:]
 
-	accountID := decodeARN(accessKey)
-	userStrng := getFakeUser(accessKey)
+	accountID := DecodeAID(accessKey)
+	userStrng := GetFakeUser(accessKey)
 
 	// ONE_HOUR < AssumeRole
 	// TWELVE_HOUR < GetSessionToken

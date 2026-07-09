@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tristanmorgan/local-sts/metrics"
+	"github.com/tristanmorgan/local-sts/sts"
 )
 
 const getUserTemplate = `<GetUserResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
@@ -76,11 +77,11 @@ func GetUser(w http.ResponseWriter, req *http.Request) {
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		sts.UnauthorizedResponse(requestID, w)
 		return
 	}
-	accountID := decodeARN(accessKey)
-	userStr := getFakeUser(accessKey)
+	accountID := sts.DecodeAID(accessKey)
+	userStr := sts.GetFakeUser(accessKey)
 	if len(accessKey) > 4 {
 		accessKey = "AIDA" + accessKey[4:]
 	}
@@ -105,10 +106,10 @@ func GetRole(w http.ResponseWriter, req *http.Request) {
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		sts.UnauthorizedResponse(requestID, w)
 		return
 	}
-	accountID := decodeARN(accessKey)
+	accountID := sts.DecodeAID(accessKey)
 	if len(accessKey) > 4 {
 		accessKey = "AROA" + accessKey[4:]
 	}

@@ -6,92 +6,6 @@ import (
 	"testing"
 )
 
-func TestDecodeARN(t *testing.T) {
-	tests := []struct {
-		name        string
-		accessKeyID string
-		want        string
-	}{
-		{
-			name:        "Valid AKIA key",
-			accessKeyID: "AKIAIOSFODNN7EXAMPLE",
-			want:        "581039954779",
-		},
-		{
-			name:        "Valid ASIA key",
-			accessKeyID: "ASIAIOSFODNN7EXAMPLE",
-			want:        "581039954779",
-		},
-		{
-			name:        "Invalid key format",
-			accessKeyID: "INVALID",
-			want:        "000000000000",
-		},
-		{
-			name:        "Empty key",
-			accessKeyID: "",
-			want:        "000000000000",
-		},
-		{
-			name:        "Short key",
-			accessKeyID: "AKIA",
-			want:        "000000000000",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := decodeARN(tt.accessKeyID)
-			if got != tt.want {
-				t.Errorf("decodeARN() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGetFakeUser(t *testing.T) {
-	tests := []struct {
-		name      string
-		accessKey string
-		want      string
-	}{
-		{
-			name:      "Empty access key",
-			accessKey: "",
-			want:      "Invalid",
-		},
-		{
-			name:      "Access key ending with A",
-			accessKey: "AKIAIOSFODNN7EXAMPLA",
-			want:      "Alice",
-		},
-		{
-			name:      "Access key ending with B",
-			accessKey: "AKIAIOSFODNN7EXAMPLB",
-			want:      "Bob",
-		},
-		{
-			name:      "Access key ending with 2",
-			accessKey: "AKIAIOSFODNN7EXAMPL2",
-			want:      "Mallory",
-		},
-		{
-			name:      "Invalid character",
-			accessKey: "AKIAIOSFODNN7EXAMPL!",
-			want:      "Invalid",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := getFakeUser(tt.accessKey)
-			if got != tt.want {
-				t.Errorf("getFakeUser() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestGetAuthorisation(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -174,7 +88,8 @@ func TestListUsers(t *testing.T) {
 			authHeader: "",
 			wantStatus: http.StatusUnauthorized,
 			wantContains: []string{
-				"Unauthorized",
+				"<ErrorResponse",
+				"<Code>InvalidClientTokenId",
 			},
 		},
 		{
@@ -182,7 +97,8 @@ func TestListUsers(t *testing.T) {
 			authHeader: "Bearer invalid",
 			wantStatus: http.StatusUnauthorized,
 			wantContains: []string{
-				"Unauthorized",
+				"<ErrorResponse",
+				"<Code>InvalidClientTokenId",
 			},
 		},
 	}
@@ -240,7 +156,8 @@ func TestListAccessKeys(t *testing.T) {
 			authHeader: "",
 			wantStatus: http.StatusUnauthorized,
 			wantContains: []string{
-				"Unauthorized",
+				"<ErrorResponse",
+				"<Code>InvalidClientTokenId",
 			},
 		},
 	}
