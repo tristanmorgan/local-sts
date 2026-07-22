@@ -50,6 +50,28 @@ const listAccessKeysTemplate = `<ListAccessKeysResponse xmlns="https://iam.amazo
   </ResponseMetadata>
 </ListAccessKeysResponse>`
 
+const listRolesTemplate = `<ListRolesResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<ListRolesResult>
+  <IsTruncated>false</IsTruncated>
+  <Roles>
+    <member>
+      <Path>/application_abc/component_xyz/</Path>
+      <Arn>arn:aws:iam::{{ .AccountID }}:role/application_abc/component_xyz/S3Access</Arn>
+      <RoleName>S3Access</RoleName>
+      <AssumeRolePolicyDocument>
+        {"Version":"2012-10-17","Statement":[{"Effect":"Allow",
+        "Principal":{"Service":["ec2.amazonaws.com"]},"Action":["sts:AssumeRole"]}]}
+      </AssumeRolePolicyDocument>
+      <CreateDate>2012-05-09T15:45:45Z</CreateDate>
+      <RoleId>{{ .AccessKey }}</RoleId>
+    </member>
+  </Roles>
+</ListRolesResult>
+<ResponseMetadata>
+  <RequestId>{{ .RequestID}}</RequestId>
+</ResponseMetadata>
+</ListRolesResponse>`
+
 // ListUsersVars holds the template variables for IAM ListUsers API responses.
 type ListUsersVars struct {
 	AccountID string
@@ -63,6 +85,13 @@ type ListAccessKeysVars struct {
 	AccessKey string
 	RequestID string
 	UserStrng string
+}
+
+// ListRolesVars holds the template variables for IAM ListRoles API responses.
+type ListRolesVars struct {
+	AccountID string
+	AccessKey string
+	RequestID string
 }
 
 var errPermissionDenied = errors.New("permission denied")
@@ -132,6 +161,34 @@ func ListAccessKeys(w http.ResponseWriter, req *http.Request) {
 
 	respVar := ListAccessKeysVars{accessKey, requestID, userStr}
 	tmpl, err := template.New("resp").Parse(listAccessKeysTemplate)
+	if err != nil {
+		panic(err)
+	}
+	err = tmpl.Execute(w, respVar)
+	if err != nil {
+		log.Fatalf("execution failed: %s", err)
+	}
+}
+
+// ListRoles handles API calls to ListAccessKeys
+func ListRoles(w http.ResponseWriter, req *http.Request) {
+	requestID := uuid.New().String()
+	w.Header().Set("x-amzn-RequestId", requestID)
+	w.Header().Set("Content-Type", "text/xml")
+
+	accessKey, err := GetAuthorisation(req)
+	if err != nil {
+		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
+		sts.UnauthorizedResponse(requestID, w)
+		return
+	}
+	accountID := sts.DecodeAID(accessKey)
+	if len(accessKey) > 4 {
+		accessKey = "AROA" + accessKey[4:]
+	}
+
+	respVar := ListRolesVars{accountID, accessKey, requestID}
+	tmpl, err := template.New("resp").Parse(listRolesTemplate)
 	if err != nil {
 		panic(err)
 	}

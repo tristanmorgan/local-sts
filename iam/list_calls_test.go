@@ -186,6 +186,74 @@ func TestListAccessKeys(t *testing.T) {
 	}
 }
 
+func TestListRoles(t *testing.T) {
+	tests := []struct {
+		name           string
+		authHeader     string
+		wantStatus     int
+		wantContains   []string
+		wantNotContain []string
+	}{
+		{
+			name:       "Valid request",
+			authHeader: "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20160126/us-east-1/iam/aws4_request, SignedHeaders=host;x-amz-date, Signature=...",
+			wantStatus: http.StatusOK,
+			wantContains: []string{
+				"<ListRolesResponse",
+				"<RoleId>AROAIOSFODNN7EXAMPLE</RoleId>",
+				"<Arn>arn:aws:iam::",
+			},
+		},
+		{
+			name:       "Missing authorization",
+			authHeader: "",
+			wantStatus: http.StatusUnauthorized,
+			wantContains: []string{
+				"<ErrorResponse",
+				"<Code>InvalidClientTokenId",
+			},
+		},
+		{
+			name:       "Invalid authorization",
+			authHeader: "Bearer invalid",
+			wantStatus: http.StatusUnauthorized,
+			wantContains: []string{
+				"<ErrorResponse",
+				"<Code>InvalidClientTokenId",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/?Action=ListRoles&Version=2011-06-15", nil)
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+
+			w := httptest.NewRecorder()
+			ListRoles(w, req)
+
+			if w.Code != tt.wantStatus {
+				t.Errorf("ListRoles() status = %v, want %v", w.Code, tt.wantStatus)
+			}
+
+			body := w.Body.String()
+			for _, want := range tt.wantContains {
+				if !contains(body, want) {
+					t.Errorf("ListRoles() body should contain %q, got %q", want, body)
+				}
+			}
+
+			for _, notWant := range tt.wantNotContain {
+				if contains(body, notWant) {
+					t.Errorf("ListRoles() body should not contain %q, got %q", notWant, body)
+				}
+			}
+		})
+	}
+}
+
 // Helper function to check if a string contains a substring
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||

@@ -124,6 +124,15 @@ func TestSTSCall(t *testing.T) {
 			expectedBody:   "<ListAccessKeysResponse",
 		},
 		{
+			name:           "POST routes to ListRoles",
+			method:         http.MethodPost,
+			url:            "/",
+			formData:       "Action=ListRoles",
+			authHeader:     "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/iam/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "<ListRolesResponse",
+		},
+		{
 			name:           "POST with unknown action returns Bad Request",
 			method:         http.MethodPost,
 			url:            "/",
