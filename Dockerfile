@@ -3,6 +3,7 @@ FROM golang:alpine AS build
 RUN apk update && apk add --no-cache git ca-certificates
 WORKDIR /src
 COPY . .
+RUN git clean -f -d -x
 RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o /local-sts
 RUN echo "nobody:x:65534:65534:nobody:/:/sbin/nologin" > /passwd
 RUN echo "nogroup:x:65533:" > /group
