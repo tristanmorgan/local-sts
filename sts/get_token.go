@@ -35,12 +35,11 @@ type SessionTokenVars struct {
 	RequestID  string
 }
 
-const assumeRoleXML = `
-<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+const assumeRoleXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
   <AssumeRoleResult>
-  <SourceIdentity>{{ .UserStrng }}</SourceIdentity>
+    <SourceIdentity>{{ .UserStrng }}</SourceIdentity>
     <AssumedRoleUser>
-	<Arn>arn:aws:sts::{{ .AccountID }}:assumed-role/demo/TestAR</Arn>
+      <Arn>arn:aws:sts::{{ .AccountID }}:assumed-role/demo/TestAR</Arn>
       <AssumedRoleId>{{ .RoleID }}:TestAR</AssumedRoleId>
     </AssumedRoleUser>
     <Credentials>
@@ -111,6 +110,7 @@ func GetSessionToken(w http.ResponseWriter, req *http.Request) {
 		UnauthorizedResponse(requestID, w)
 		return
 	}
+	accessKey = CreateNewKey(accessKey)
 	accessKey = "ASIA" + accessKey[4:]
 
 	// ONE_HOUR < AssumeRole
@@ -148,6 +148,7 @@ func AssumeRole(w http.ResponseWriter, req *http.Request) {
 		UnauthorizedResponse(requestID, w)
 		return
 	}
+	accessKey = CreateNewKey(accessKey)
 	accessKey = "ASIA" + accessKey[4:]
 
 	accountID := DecodeAID(accessKey)
@@ -192,6 +193,7 @@ func GetFederationToken(w http.ResponseWriter, req *http.Request) {
 		UnauthorizedResponse(requestID, w)
 		return
 	}
+	accessKey = CreateNewKey(accessKey)
 	accessKey = "ASIA" + accessKey[4:]
 
 	accountID := DecodeAID(accessKey)

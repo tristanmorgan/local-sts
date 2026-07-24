@@ -11,40 +11,40 @@ import (
 
 func TestGetSessionToken(t *testing.T) {
 	tests := []struct {
-		name              string
-		authHeader        string
-		expectedAccessKey string
-		expectedStatus    int
+		name            string
+		authHeader      string
+		expectedPattern string
+		expectedStatus  int
 	}{
 		{
-			name:              "Valid Authorization header with AKIA key",
-			authHeader:        "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
-			expectedAccessKey: "ASIAZOXKDENHR2JTNJLI",
-			expectedStatus:    http.StatusOK,
+			name:            "Valid Authorization header with AKIA key",
+			authHeader:      "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedPattern: "ASIAZOXKDENHR",
+			expectedStatus:  http.StatusOK,
 		},
 		{
-			name:              "Valid Authorization header with different AKIA key",
-			authHeader:        "AWS4-HMAC-SHA256 Credential=AKIASIFCFAPDEMQNV3SO/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=xyz",
-			expectedAccessKey: "ASIASIFCFAPDEMQNV3SO",
-			expectedStatus:    http.StatusOK,
+			name:            "Valid Authorization header with different AKIA key",
+			authHeader:      "AWS4-HMAC-SHA256 Credential=AKIASIFCFAPDEMQNV3SO/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=xyz",
+			expectedPattern: "ASIASIFCFAPDEM",
+			expectedStatus:  http.StatusOK,
 		},
 		{
-			name:              "No Authorization header",
-			authHeader:        "",
-			expectedAccessKey: "",
-			expectedStatus:    http.StatusUnauthorized,
+			name:            "No Authorization header",
+			authHeader:      "",
+			expectedPattern: "",
+			expectedStatus:  http.StatusUnauthorized,
 		},
 		{
-			name:              "Invalid Authorization header format",
-			authHeader:        "Bearer some-token",
-			expectedAccessKey: "",
-			expectedStatus:    http.StatusUnauthorized,
+			name:            "Invalid Authorization header format",
+			authHeader:      "Bearer some-token",
+			expectedPattern: "",
+			expectedStatus:  http.StatusUnauthorized,
 		},
 		{
-			name:              "Authorization header with ASIA key",
-			authHeader:        "AWS4-HMAC-SHA256 Credential=ASIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
-			expectedAccessKey: "",
-			expectedStatus:    http.StatusOK,
+			name:            "Authorization header with ASIA key",
+			authHeader:      "AWS4-HMAC-SHA256 Credential=ASIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedPattern: "",
+			expectedStatus:  http.StatusOK,
 		},
 	}
 
@@ -86,10 +86,10 @@ func TestGetSessionToken(t *testing.T) {
 				t.Error("response body does not contain GetSessionTokenResponse element")
 			}
 
-			// Check for expected access key if provided
-			if tt.expectedAccessKey != "" {
-				if !strings.Contains(body, tt.expectedAccessKey) {
-					t.Errorf("response body does not contain expected access key %q", tt.expectedAccessKey)
+			// Check for expected access key pattern if provided
+			if tt.expectedPattern != "" {
+				if !strings.Contains(body, tt.expectedPattern) {
+					t.Errorf("response body does not contain expected access key pattern %q", tt.expectedPattern)
 				}
 			}
 
@@ -180,34 +180,34 @@ func TestGetSessionTokenSecretKey(t *testing.T) {
 
 func TestAssumeRole(t *testing.T) {
 	tests := []struct {
-		name              string
-		authHeader        string
-		expectedAccessKey string
-		expectedStatus    int
+		name            string
+		authHeader      string
+		expectedPattern string
+		expectedStatus  int
 	}{
 		{
-			name:              "Valid Authorization header with AKIA key",
-			authHeader:        "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
-			expectedAccessKey: "ASIAZOXKDENHR2JTNJLI",
-			expectedStatus:    http.StatusOK,
+			name:            "Valid Authorization header with AKIA key",
+			authHeader:      "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedPattern: "ASIAZOXKDENHR",
+			expectedStatus:  http.StatusOK,
 		},
 		{
-			name:              "Valid Authorization header with different AKIA key",
-			authHeader:        "AWS4-HMAC-SHA256 Credential=AKIASIFCFAPDEMQNV3SO/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=xyz",
-			expectedAccessKey: "ASIASIFCFAPDEMQNV3SO",
-			expectedStatus:    http.StatusOK,
+			name:            "Valid Authorization header with different AKIA key",
+			authHeader:      "AWS4-HMAC-SHA256 Credential=AKIASIFCFAPDEMQNV3SO/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=xyz",
+			expectedPattern: "ASIASIFCFAPDEM",
+			expectedStatus:  http.StatusOK,
 		},
 		{
-			name:              "No Authorization header",
-			authHeader:        "",
-			expectedAccessKey: "",
-			expectedStatus:    http.StatusUnauthorized,
+			name:            "No Authorization header",
+			authHeader:      "",
+			expectedPattern: "",
+			expectedStatus:  http.StatusUnauthorized,
 		},
 		{
-			name:              "Invalid Authorization header format",
-			authHeader:        "Bearer some-token",
-			expectedAccessKey: "",
-			expectedStatus:    http.StatusUnauthorized,
+			name:            "Invalid Authorization header format",
+			authHeader:      "Bearer some-token",
+			expectedPattern: "",
+			expectedStatus:  http.StatusUnauthorized,
 		},
 	}
 
@@ -249,10 +249,10 @@ func TestAssumeRole(t *testing.T) {
 				t.Error("response body does not contain AssumeRoleResponse element")
 			}
 
-			// Check for expected access key if provided
-			if tt.expectedAccessKey != "" {
-				if !strings.Contains(body, tt.expectedAccessKey) {
-					t.Errorf("response body does not contain expected access key %q", tt.expectedAccessKey)
+			// Check for expected access key pattern if provided
+			if tt.expectedPattern != "" {
+				if !strings.Contains(body, tt.expectedPattern) {
+					t.Errorf("response body does not contain expected access key pattern %q", tt.expectedPattern)
 				}
 			}
 
@@ -386,34 +386,34 @@ func TestAssumeRoleUserString(t *testing.T) {
 
 func TestGetFederationToken(t *testing.T) {
 	tests := []struct {
-		name              string
-		authHeader        string
-		expectedAccessKey string
-		expectedStatus    int
+		name            string
+		authHeader      string
+		expectedPattern string
+		expectedStatus  int
 	}{
 		{
-			name:              "Valid Authorization header with AKIA key",
-			authHeader:        "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
-			expectedAccessKey: "ASIAZOXKDENHR2JTNJLI",
-			expectedStatus:    http.StatusOK,
+			name:            "Valid Authorization header with AKIA key",
+			authHeader:      "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc",
+			expectedPattern: "ASIAZOXKDENHR",
+			expectedStatus:  http.StatusOK,
 		},
 		{
-			name:              "Valid Authorization header with different AKIA key",
-			authHeader:        "AWS4-HMAC-SHA256 Credential=AKIASIFCFAPDEMQNV3SO/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=xyz",
-			expectedAccessKey: "ASIASIFCFAPDEMQNV3SO",
-			expectedStatus:    http.StatusOK,
+			name:            "Valid Authorization header with different AKIA key",
+			authHeader:      "AWS4-HMAC-SHA256 Credential=AKIASIFCFAPDEMQNV3SO/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=xyz",
+			expectedPattern: "ASIASIFCFAPDEM",
+			expectedStatus:  http.StatusOK,
 		},
 		{
-			name:              "No Authorization header",
-			authHeader:        "",
-			expectedAccessKey: "",
-			expectedStatus:    http.StatusUnauthorized,
+			name:            "No Authorization header",
+			authHeader:      "",
+			expectedPattern: "",
+			expectedStatus:  http.StatusUnauthorized,
 		},
 		{
-			name:              "Invalid Authorization header format",
-			authHeader:        "Bearer some-token",
-			expectedAccessKey: "",
-			expectedStatus:    http.StatusUnauthorized,
+			name:            "Invalid Authorization header format",
+			authHeader:      "Bearer some-token",
+			expectedPattern: "",
+			expectedStatus:  http.StatusUnauthorized,
 		},
 	}
 
@@ -455,10 +455,10 @@ func TestGetFederationToken(t *testing.T) {
 				t.Error("response body does not contain GetFederationTokenResponse element")
 			}
 
-			// Check for expected access key if provided
-			if tt.expectedAccessKey != "" {
-				if !strings.Contains(body, tt.expectedAccessKey) {
-					t.Errorf("response body does not contain expected access key %q", tt.expectedAccessKey)
+			// Check for expected access key pattern if provided
+			if tt.expectedPattern != "" {
+				if !strings.Contains(body, tt.expectedPattern) {
+					t.Errorf("response body does not contain expected access key pattern %q", tt.expectedPattern)
 				}
 			}
 
