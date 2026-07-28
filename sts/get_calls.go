@@ -44,15 +44,6 @@ const keyInfoTemplate = `<GetAccessKeyInfoResponse xmlns="https://sts.amazonaws.
   </ResponseMetadata>
 </GetAccessKeyInfoResponse>`
 
-const errorMessageTemplate = `<ErrorResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
-  <Error>
-    <Type>Sender</Type>
-    <Code>InvalidClientTokenId</Code>
-    <Message>The security token included in the request is invalid.</Message>
-  </Error>
-  <RequestId>{{ .RequestID }}</RequestId>
-</ErrorResponse>`
-
 // CallerIDVars holds the template variables for STS GetCallerIdentity API responses.
 type CallerIDVars struct {
 	AccountID string
@@ -81,18 +72,6 @@ func GetAuthorisation(req *http.Request) (accessKey string, err error) {
 		}
 	}
 	return "", errPermissionDenied
-}
-
-// UnauthorizedResponse returns a foratted response to unauthorised calls.
-func UnauthorizedResponse(requestID string, w http.ResponseWriter) {
-	respVar := CallerIDVars{"", "", requestID, ""}
-	tmpl, err := template.New("resp").Parse(errorMessageTemplate)
-	if err != nil {
-		panic(err)
-	}
-	b := new(strings.Builder)
-	tmpl.Execute(b, respVar)
-	http.Error(w, b.String(), http.StatusUnauthorized)
 }
 
 // GetCallerIdentity handles API calls to GetCallerIdentity

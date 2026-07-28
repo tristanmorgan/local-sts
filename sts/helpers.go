@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"regexp"
+	"strings"
+	"text/template"
 )
 
 var awsTable = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
@@ -74,4 +77,30 @@ func GetFakeUser(accessKey string) (name string) {
 	}
 	index = index & 0x0f
 	return UserNames[index]
+}
+
+const errorMessageTemplate = `<ErrorResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <Error>
+    <Type>Sender</Type>
+    <Code>InvalidClientTokenId</Code>
+    <Message>The security token included in the request is invalid.</Message>
+  </Error>
+  <RequestId>{{ .RequestID }}</RequestId>
+</ErrorResponse>`
+
+// ErrorVars holds the template variables for STS API Error responses.
+type ErrorVars struct {
+	RequestID string
+}
+
+// UnauthorizedResponse returns a foratted response to unauthorised calls.
+func UnauthorizedResponse(requestID string, w http.ResponseWriter) {
+	respVar := ErrorVars{requestID}
+	tmpl, err := template.New("resp").Parse(errorMessageTemplate)
+	if err != nil {
+		panic(err)
+	}
+	b := new(strings.Builder)
+	tmpl.Execute(b, respVar)
+	http.Error(w, b.String(), http.StatusUnauthorized)
 }
