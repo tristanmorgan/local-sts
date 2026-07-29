@@ -4,10 +4,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 	"text/template"
 
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tristanmorgan/local-sts/metrics"
 	"github.com/tristanmorgan/local-sts/sts"
@@ -96,30 +94,12 @@ type ListRolesVars struct {
 
 var errPermissionDenied = errors.New("permission denied")
 
-// GetAuthorisation extracts the access key from the Authorization headers.
-func GetAuthorisation(req *http.Request) (accessKey string, err error) {
-	authHeader := req.Header.Get("Authorization")
-	if authHeader != "" {
-		// Use regex to extract access key from Credential=<ACCESS_KEY>/...
-		re := regexp.MustCompile(`Credential=(A[K,S]IA[A-Z234567]{16})/`)
-		matches := re.FindStringSubmatch(authHeader)
-		if len(matches) > 1 {
-			return matches[1], nil
-		}
-	}
-	return "", errPermissionDenied
-}
-
 // ListUsers handles API calls to ListUsers
-func ListUsers(w http.ResponseWriter, req *http.Request) {
+func ListUsers(w http.ResponseWriter, req *http.Request, requestID string) {
 	// Action=ListUsers&Version=2011-06-15
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
 	// Extract accessKey from Authorization header
 	// Format: AWS4-HMAC-SHA256 Credential=AKIAI44QH8DHBEXAMPLE/20160126/us-east-1/iam/aws4_request,...
-	accessKey, err := GetAuthorisation(req)
+	accessKey, err := sts.GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
 		sts.UnauthorizedResponse(requestID, w)
@@ -143,12 +123,8 @@ func ListUsers(w http.ResponseWriter, req *http.Request) {
 }
 
 // ListAccessKeys handles API calls to ListAccessKeys
-func ListAccessKeys(w http.ResponseWriter, req *http.Request) {
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
-	accessKey, err := GetAuthorisation(req)
+func ListAccessKeys(w http.ResponseWriter, req *http.Request, requestID string) {
+	accessKey, err := sts.GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
 		sts.UnauthorizedResponse(requestID, w)
@@ -171,12 +147,8 @@ func ListAccessKeys(w http.ResponseWriter, req *http.Request) {
 }
 
 // ListRoles handles API calls to ListAccessKeys
-func ListRoles(w http.ResponseWriter, req *http.Request) {
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
-	accessKey, err := GetAuthorisation(req)
+func ListRoles(w http.ResponseWriter, req *http.Request, requestID string) {
+	accessKey, err := sts.GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
 		sts.UnauthorizedResponse(requestID, w)

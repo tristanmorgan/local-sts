@@ -10,6 +10,7 @@ import (
 	"os"
 	"slices"
 
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -39,6 +40,9 @@ var (
 func stsCall(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodPost:
+		requestID := uuid.New().String()
+		w.Header().Set("x-amzn-RequestId", requestID)
+		w.Header().Set("Content-Type", "text/xml")
 		err := req.ParseForm()
 		if err != nil {
 			metrics.ErrorCount.With(prometheus.Labels{"error": "BadRequest"}).Inc()
@@ -59,29 +63,29 @@ func stsCall(w http.ResponseWriter, req *http.Request) {
 		}
 		switch action {
 		case "GetCallerIdentity":
-			sts.GetCallerIdentity(w, req)
+			sts.GetCallerIdentity(w, req, requestID)
 		case "GetAccessKeyInfo":
-			sts.GetAccessKeyInfo(w, req)
+			sts.GetAccessKeyInfo(w, req, requestID)
 		case "GetSessionToken":
-			sts.GetSessionToken(w, req)
+			sts.GetSessionToken(w, req, requestID)
 		case "GetFederationToken":
-			sts.GetFederationToken(w, req)
+			sts.GetFederationToken(w, req, requestID)
 		case "AssumeRole":
-			sts.AssumeRole(w, req)
+			sts.AssumeRole(w, req, requestID)
 		case "GetUser":
-			iam.GetUser(w, req)
+			iam.GetUser(w, req, requestID)
 		case "GetRole":
-			iam.GetRole(w, req)
+			iam.GetRole(w, req, requestID)
 		case "ListUsers":
-			iam.ListUsers(w, req)
+			iam.ListUsers(w, req, requestID)
 		case "ListAccessKeys":
-			iam.ListAccessKeys(w, req)
+			iam.ListAccessKeys(w, req, requestID)
 		case "ListRoles":
-			iam.ListRoles(w, req)
+			iam.ListRoles(w, req, requestID)
 		case "CreateAccessKey":
-			iam.CreateAccessKey(w, req)
+			iam.CreateAccessKey(w, req, requestID)
 		case "DeleteAccessKey", "DeleteUser", "DeleteRole":
-			iam.DeleteAction(w, req, action)
+			iam.DeleteAction(w, req, action, requestID)
 		default:
 			metrics.ErrorCount.With(prometheus.Labels{"error": "BadRequest"}).Inc()
 			http.Error(w, "Action Not Allowed", http.StatusBadRequest)

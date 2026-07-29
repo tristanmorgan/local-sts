@@ -7,7 +7,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tristanmorgan/local-sts/metrics"
 )
@@ -98,11 +97,7 @@ type GetFederationTokenVars struct {
 }
 
 // GetSessionToken handles API calls to GetSessionToken
-func GetSessionToken(w http.ResponseWriter, req *http.Request) {
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
+func GetSessionToken(w http.ResponseWriter, req *http.Request, requestID string) {
 	// Extract accessKey from Authorization header
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
@@ -136,11 +131,7 @@ func GetSessionToken(w http.ResponseWriter, req *http.Request) {
 }
 
 // AssumeRole handles API calls to AssumeRole
-func AssumeRole(w http.ResponseWriter, req *http.Request) {
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
+func AssumeRole(w http.ResponseWriter, req *http.Request, requestID string) {
 	// Extract accessKey from Authorization header
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
@@ -166,7 +157,7 @@ func AssumeRole(w http.ResponseWriter, req *http.Request) {
 	data := []byte(accessKey + "0123456789")
 	secretKey := base64.StdEncoding.EncodeToString(data)
 
-	data = []byte(sessionTokenXML[:177])
+	data = []byte(assumeRoleXML[:177])
 	token := base64.StdEncoding.EncodeToString(data)
 
 	respVar := AssumeRoleVars{userStrng, roleID, accessKey, secretKey, token, accountID, expiration, requestID}
@@ -181,11 +172,7 @@ func AssumeRole(w http.ResponseWriter, req *http.Request) {
 }
 
 // GetFederationToken handles API calls to GetFederationToken
-func GetFederationToken(w http.ResponseWriter, req *http.Request) {
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
+func GetFederationToken(w http.ResponseWriter, req *http.Request, requestID string) {
 	// Extract accessKey from Authorization header
 	accessKey, err := GetAuthorisation(req)
 	if err != nil {
@@ -207,7 +194,7 @@ func GetFederationToken(w http.ResponseWriter, req *http.Request) {
 	data := []byte(accessKey + "0123456789")
 	secretKey := base64.StdEncoding.EncodeToString(data)
 
-	data = []byte(sessionTokenXML[:177])
+	data = []byte(getFederationTokenXML[:177])
 	token := base64.StdEncoding.EncodeToString(data)
 
 	respVar := GetFederationTokenVars{userStrng, accessKey, secretKey, token, accountID, expiration, requestID}

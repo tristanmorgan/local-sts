@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tristanmorgan/local-sts/metrics"
 	"github.com/tristanmorgan/local-sts/sts"
@@ -67,14 +66,10 @@ type GetRoleVars struct {
 }
 
 // GetUser handles API calls to GetUser
-func GetUser(w http.ResponseWriter, req *http.Request) {
+func GetUser(w http.ResponseWriter, req *http.Request, requestID string) {
 	// Action=GetUser&Version=2011-06-15
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
 	// Extract accessKey from Authorization header
-	accessKey, err := GetAuthorisation(req)
+	accessKey, err := sts.GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
 		sts.UnauthorizedResponse(requestID, w)
@@ -98,12 +93,8 @@ func GetUser(w http.ResponseWriter, req *http.Request) {
 }
 
 // GetRole handles API calls to GetRole
-func GetRole(w http.ResponseWriter, req *http.Request) {
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
-	accessKey, err := GetAuthorisation(req)
+func GetRole(w http.ResponseWriter, req *http.Request, requestID string) {
+	accessKey, err := sts.GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
 		sts.UnauthorizedResponse(requestID, w)

@@ -233,6 +233,15 @@ func TestSTSCall(t *testing.T) {
 			if !strings.Contains(body, tt.expectedBody) {
 				t.Errorf("response body does not contain expected content %q, got: %s", tt.expectedBody, body)
 			}
+
+			if tt.expectedStatus == http.StatusOK {
+				if contentType := rr.Header().Get("Content-Type"); contentType != "text/xml" {
+					t.Errorf("CreateAccessKey() Content-Type = %v, want text/xml", contentType)
+				}
+				if requestID := rr.Header().Get("x-amzn-RequestId"); requestID == "" {
+					t.Errorf("CreateAccessKey() missing x-amzn-RequestId header")
+				}
+			}
 		})
 	}
 }

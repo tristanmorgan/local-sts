@@ -35,6 +35,20 @@ func DecodeAID(accessKeyID string) (decodeAccountID string) {
 	return fmt.Sprintf("%012d", decimal)
 }
 
+// GetAuthorisation extracts the access key from the Authorization headers.
+func GetAuthorisation(req *http.Request) (accessKey string, err error) {
+	authHeader := req.Header.Get("Authorization")
+	if authHeader != "" {
+		// Use regex to extract access key from Credential=<ACCESS_KEY>/...
+		re := regexp.MustCompile(`Credential=(A[K,S]IA[A-Z234567]{16})/`)
+		matches := re.FindStringSubmatch(authHeader)
+		if len(matches) > 1 {
+			return matches[1], nil
+		}
+	}
+	return "", errPermissionDenied
+}
+
 func CreateNewKey(accessKeyID string) (newAccessKeyID string) {
 	// AKIA 7TKC4YKJ7T KMSEA 7
 	keyStr := make([]byte, 5)

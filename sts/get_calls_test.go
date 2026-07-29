@@ -70,7 +70,7 @@ func TestGetCallerIdentity(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			// Call the handler
-			GetCallerIdentity(rr, req)
+			GetCallerIdentity(rr, req, "requ-esti-duuid")
 
 			// Check status code
 			if status := rr.Code; status != tt.expectedStatus {
@@ -79,18 +79,6 @@ func TestGetCallerIdentity(t *testing.T) {
 
 			if tt.expectedStatus == http.StatusUnauthorized {
 				return
-			}
-
-			// Check Content-Type header
-			contentType := rr.Header().Get("Content-Type")
-			if contentType != "text/xml" {
-				t.Errorf("handler returned wrong content type: got %v want %v", contentType, "text/xml")
-			}
-
-			// Check x-amzn-RequestId header exists
-			requestID := rr.Header().Get("x-amzn-RequestId")
-			if requestID == "" {
-				t.Error("handler did not set x-amzn-RequestId header")
 			}
 
 			// Check response body contains expected values
@@ -123,7 +111,7 @@ func TestGetCallerIdentityXMLStructure(t *testing.T) {
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc")
 
 	rr := httptest.NewRecorder()
-	GetCallerIdentity(rr, req)
+	GetCallerIdentity(rr, req, "requ-esti-duuid")
 
 	body := rr.Body.String()
 
@@ -201,23 +189,11 @@ func TestGetAccessKeyInfo(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			// Call the handler
-			GetAccessKeyInfo(rr, req)
+			GetAccessKeyInfo(rr, req, "requ-esti-duuid")
 
 			// Check status code
 			if status := rr.Code; status != http.StatusOK {
 				t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-			}
-
-			// Check Content-Type header
-			contentType := rr.Header().Get("Content-Type")
-			if contentType != "text/xml" {
-				t.Errorf("handler returned wrong content type: got %v want %v", contentType, "text/xml")
-			}
-
-			// Check x-amzn-RequestId header exists
-			requestID := rr.Header().Get("x-amzn-RequestId")
-			if requestID == "" {
-				t.Error("handler did not set x-amzn-RequestId header")
 			}
 
 			// Check response body contains expected values
@@ -246,7 +222,7 @@ func TestGetAccessKeyInfoXMLStructure(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	rr := httptest.NewRecorder()
-	GetAccessKeyInfo(rr, req)
+	GetAccessKeyInfo(rr, req, "requ-esti-duuid")
 
 	body := rr.Body.String()
 
@@ -275,7 +251,7 @@ func BenchmarkGetCallerIdentity(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		rr := httptest.NewRecorder()
-		GetCallerIdentity(rr, req)
+		GetCallerIdentity(rr, req, "requ-esti-duuid")
 	}
 }
 
@@ -286,6 +262,6 @@ func BenchmarkGetAccessKeyInfo(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		rr := httptest.NewRecorder()
-		GetAccessKeyInfo(rr, req)
+		GetAccessKeyInfo(rr, req, "requ-esti-duuid")
 	}
 }

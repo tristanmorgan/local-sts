@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/tristanmorgan/local-sts/sts"
 )
 
 func TestGetAuthorisation(t *testing.T) {
@@ -52,7 +54,7 @@ func TestGetAuthorisation(t *testing.T) {
 				req.Header.Set("Authorization", tt.authValue)
 			}
 
-			gotKey, err := GetAuthorisation(req)
+			gotKey, err := sts.GetAuthorisation(req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetAuthorisation() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -111,7 +113,7 @@ func TestListUsers(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			ListUsers(w, req)
+			ListUsers(w, req, "requ-esti-duuid")
 
 			if w.Code != tt.wantStatus {
 				t.Errorf("ListUsers() status = %v, want %v", w.Code, tt.wantStatus)
@@ -170,7 +172,7 @@ func TestListAccessKeys(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			ListAccessKeys(w, req)
+			ListAccessKeys(w, req, "requ-esti-duuid")
 
 			if w.Code != tt.wantStatus {
 				t.Errorf("ListAccessKeys() status = %v, want %v", w.Code, tt.wantStatus)
@@ -232,7 +234,7 @@ func TestListRoles(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			ListRoles(w, req)
+			ListRoles(w, req, "requ-esti-duuid")
 
 			if w.Code != tt.wantStatus {
 				t.Errorf("ListRoles() status = %v, want %v", w.Code, tt.wantStatus)

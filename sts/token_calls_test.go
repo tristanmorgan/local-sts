@@ -56,7 +56,7 @@ func TestGetSessionToken(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			GetSessionToken(rr, req)
+			GetSessionToken(rr, req, "requ-esti-duuid")
 
 			// Check status code
 			if status := rr.Code; status != tt.expectedStatus {
@@ -65,18 +65,6 @@ func TestGetSessionToken(t *testing.T) {
 
 			if tt.expectedStatus == http.StatusUnauthorized {
 				return
-			}
-
-			// Check Content-Type header
-			contentType := rr.Header().Get("Content-Type")
-			if contentType != "text/xml" {
-				t.Errorf("handler returned wrong content type: got %v want %v", contentType, "text/xml")
-			}
-
-			// Check x-amzn-RequestId header exists
-			requestID := rr.Header().Get("x-amzn-RequestId")
-			if requestID == "" {
-				t.Error("handler did not set x-amzn-RequestId header")
 			}
 
 			body := rr.Body.String()
@@ -124,7 +112,7 @@ func TestGetSessionTokenExpiration(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	beforeCall := time.Now()
-	GetSessionToken(rr, req)
+	GetSessionToken(rr, req, "requ-esti-duuid")
 	afterCall := time.Now()
 
 	body := rr.Body.String()
@@ -157,7 +145,7 @@ func TestGetSessionTokenSecretKey(t *testing.T) {
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc")
 
 	rr := httptest.NewRecorder()
-	GetSessionToken(rr, req)
+	GetSessionToken(rr, req, "requ-esti-duuid")
 
 	body := rr.Body.String()
 
@@ -219,7 +207,7 @@ func TestAssumeRole(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			AssumeRole(rr, req)
+			AssumeRole(rr, req, "requ-esti-duuid")
 
 			// Check status code
 			if status := rr.Code; status != tt.expectedStatus {
@@ -228,18 +216,6 @@ func TestAssumeRole(t *testing.T) {
 
 			if tt.expectedStatus == http.StatusUnauthorized {
 				return
-			}
-
-			// Check Content-Type header
-			contentType := rr.Header().Get("Content-Type")
-			if contentType != "text/xml" {
-				t.Errorf("handler returned wrong content type: got %v want %v", contentType, "text/xml")
-			}
-
-			// Check x-amzn-RequestId header exists
-			requestID := rr.Header().Get("x-amzn-RequestId")
-			if requestID == "" {
-				t.Error("handler did not set x-amzn-RequestId header")
 			}
 
 			body := rr.Body.String()
@@ -293,7 +269,7 @@ func TestAssumeRoleExpiration(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	beforeCall := time.Now()
-	AssumeRole(rr, req)
+	AssumeRole(rr, req, "requ-esti-duuid")
 	afterCall := time.Now()
 
 	body := rr.Body.String()
@@ -326,7 +302,7 @@ func TestAssumeRoleAccountID(t *testing.T) {
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc")
 
 	rr := httptest.NewRecorder()
-	AssumeRole(rr, req)
+	AssumeRole(rr, req, "requ-esti-duuid")
 
 	body := rr.Body.String()
 
@@ -372,7 +348,7 @@ func TestAssumeRoleUserString(t *testing.T) {
 			req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential="+tt.accessKey+"/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc")
 
 			rr := httptest.NewRecorder()
-			AssumeRole(rr, req)
+			AssumeRole(rr, req, "requ-esti-duuid")
 
 			body := rr.Body.String()
 
@@ -425,7 +401,7 @@ func TestGetFederationToken(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			GetFederationToken(rr, req)
+			GetFederationToken(rr, req, "requ-esti-duuid")
 
 			// Check status code
 			if status := rr.Code; status != tt.expectedStatus {
@@ -434,18 +410,6 @@ func TestGetFederationToken(t *testing.T) {
 
 			if tt.expectedStatus == http.StatusUnauthorized {
 				return
-			}
-
-			// Check Content-Type header
-			contentType := rr.Header().Get("Content-Type")
-			if contentType != "text/xml" {
-				t.Errorf("handler returned wrong content type: got %v want %v", contentType, "text/xml")
-			}
-
-			// Check x-amzn-RequestId header exists
-			requestID := rr.Header().Get("x-amzn-RequestId")
-			if requestID == "" {
-				t.Error("handler did not set x-amzn-RequestId header")
 			}
 
 			body := rr.Body.String()
@@ -498,7 +462,7 @@ func TestGetFederationTokenExpiration(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	beforeCall := time.Now()
-	GetFederationToken(rr, req)
+	GetFederationToken(rr, req, "requ-esti-duuid")
 	afterCall := time.Now()
 
 	body := rr.Body.String()
@@ -531,7 +495,7 @@ func TestGetFederationTokenAccountID(t *testing.T) {
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAZOXKDENHR2JTNJLI/20160126/us-east-1/sts/aws4_request, SignedHeaders=host, Signature=abc")
 
 	rr := httptest.NewRecorder()
-	GetFederationToken(rr, req)
+	GetFederationToken(rr, req, "requ-esti-duuid")
 
 	body := rr.Body.String()
 
@@ -640,7 +604,7 @@ func BenchmarkGetSessionToken(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		rr := httptest.NewRecorder()
-		GetSessionToken(rr, req)
+		GetSessionToken(rr, req, "requ-esti-duuid")
 	}
 }
 
@@ -650,7 +614,7 @@ func BenchmarkAssumeRole(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		rr := httptest.NewRecorder()
-		AssumeRole(rr, req)
+		AssumeRole(rr, req, "requ-esti-duuid")
 	}
 }
 
@@ -660,6 +624,6 @@ func BenchmarkGetFederationToken(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		rr := httptest.NewRecorder()
-		GetFederationToken(rr, req)
+		GetFederationToken(rr, req, "requ-esti-duuid")
 	}
 }

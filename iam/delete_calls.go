@@ -4,8 +4,6 @@ import (
 	"log"
 	"net/http"
 	"text/template"
-
-	"github.com/google/uuid"
 )
 
 const deleteTemplate = `<{{ .DelAction }}Response xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
@@ -21,11 +19,7 @@ type DeleteVars struct {
 }
 
 // DeleteAction handles API calls many DeleteActions.
-func DeleteAction(w http.ResponseWriter, req *http.Request, delAction string) {
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
+func DeleteAction(w http.ResponseWriter, req *http.Request, delAction string, requestID string) {
 	respVar := DeleteVars{delAction, requestID}
 	tmpl, err := template.New("resp").Parse(deleteTemplate)
 	if err != nil {

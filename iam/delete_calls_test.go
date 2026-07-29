@@ -50,18 +50,10 @@ func TestDeleteAction(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/?Action="+tt.action+"&Version=2010-05-08", nil)
 			w := httptest.NewRecorder()
 
-			DeleteAction(w, req, tt.action)
+			DeleteAction(w, req, tt.action, "requ-esti-duuid")
 
 			if w.Code != http.StatusOK {
 				t.Fatalf("DeleteAction() status = %v, want %v", w.Code, http.StatusOK)
-			}
-
-			if contentType := w.Header().Get("Content-Type"); contentType != "text/xml" {
-				t.Fatalf("DeleteAction() Content-Type = %q, want %q", contentType, "text/xml")
-			}
-
-			if requestID := w.Header().Get("x-amzn-RequestId"); requestID == "" {
-				t.Fatal("DeleteAction() missing x-amzn-RequestId header")
 			}
 
 			body := w.Body.String()

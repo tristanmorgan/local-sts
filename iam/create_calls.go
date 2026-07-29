@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tristanmorgan/local-sts/metrics"
 	"github.com/tristanmorgan/local-sts/sts"
@@ -35,14 +34,10 @@ type CreateAccessKeyVars struct {
 }
 
 // CreateAccessKey handles API calls to CreateAccessKey
-func CreateAccessKey(w http.ResponseWriter, req *http.Request) {
+func CreateAccessKey(w http.ResponseWriter, req *http.Request, requestID string) {
 	// Action=CreateAccessKey&Version=2011-06-15&UserName=Bob
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
 	// Extract accessKey from Authorization header
-	accessKey, err := GetAuthorisation(req)
+	accessKey, err := sts.GetAuthorisation(req)
 	if err != nil {
 		metrics.ErrorCount.With(prometheus.Labels{"error": "Unauthorized"}).Inc()
 		sts.UnauthorizedResponse(requestID, w)

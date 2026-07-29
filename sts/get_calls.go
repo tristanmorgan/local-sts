@@ -4,11 +4,9 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 	"strings"
 	"text/template"
 
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tristanmorgan/local-sts/metrics"
 )
@@ -60,27 +58,8 @@ type KeyInfoVars struct {
 
 var errPermissionDenied = errors.New("permission denied")
 
-// GetAuthorisation extracts the access key from the Authorization headers.
-func GetAuthorisation(req *http.Request) (accessKey string, err error) {
-	authHeader := req.Header.Get("Authorization")
-	if authHeader != "" {
-		// Use regex to extract access key from Credential=<ACCESS_KEY>/...
-		re := regexp.MustCompile(`Credential=(A[K,S]IA[A-Z234567]{16})/`)
-		matches := re.FindStringSubmatch(authHeader)
-		if len(matches) > 1 {
-			return matches[1], nil
-		}
-	}
-	return "", errPermissionDenied
-}
-
 // GetCallerIdentity handles API calls to GetCallerIdentity
-func GetCallerIdentity(w http.ResponseWriter, req *http.Request) {
-	// Action=GetCallerIdentity&Version=2011-06-15
-	requestID := uuid.New().String()
-	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
+func GetCallerIdentity(w http.ResponseWriter, req *http.Request, requestID string) {
 	// Extract accessKey from Authorization header
 	// Format: AWS4-HMAC-SHA256 Credential=AKIAI44QH8DHBEXAMPLE/20160126/us-east-1/sts/aws4_request,...
 	accessKey, err := GetAuthorisation(req)
@@ -112,11 +91,8 @@ func GetCallerIdentity(w http.ResponseWriter, req *http.Request) {
 }
 
 // GetAccessKeyInfo handles API calls to GetAccessKeyInfo
-func GetAccessKeyInfo(w http.ResponseWriter, req *http.Request) {
-	requestID := uuid.New().String()
+func GetAccessKeyInfo(w http.ResponseWriter, req *http.Request, requestID string) {
 	w.Header().Set("x-amzn-RequestId", requestID)
-	w.Header().Set("Content-Type", "text/xml")
-
 	// Extract accessKey from form parameter AccessKeyId
 	accessKey := req.FormValue("AccessKeyId")
 	accountID := DecodeAID(accessKey)

@@ -56,7 +56,7 @@ func TestCreateAccessKey(t *testing.T) {
 			}
 
 			w := httptest.NewRecorder()
-			CreateAccessKey(w, req)
+			CreateAccessKey(w, req, "requ-esti-duuid")
 
 			if w.Code != tt.wantStatus {
 				t.Errorf("CreateAccessKey() status = %v, want %v", w.Code, tt.wantStatus)
@@ -66,16 +66,6 @@ func TestCreateAccessKey(t *testing.T) {
 			for _, want := range tt.wantContains {
 				if !contains(body, want) {
 					t.Errorf("CreateAccessKey() body should contain %q, got %q", want, body)
-				}
-			}
-
-			// Check headers for successful requests
-			if tt.wantStatus == http.StatusOK {
-				if contentType := w.Header().Get("Content-Type"); contentType != "text/xml" {
-					t.Errorf("CreateAccessKey() Content-Type = %v, want text/xml", contentType)
-				}
-				if requestID := w.Header().Get("x-amzn-RequestId"); requestID == "" {
-					t.Errorf("CreateAccessKey() missing x-amzn-RequestId header")
 				}
 			}
 		})
@@ -88,7 +78,7 @@ func TestCreateAccessKeySecretGeneration(t *testing.T) {
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20160126/us-east-1/iam/aws4_request, SignedHeaders=host;x-amz-date, Signature=...")
 
 	w := httptest.NewRecorder()
-	CreateAccessKey(w, req)
+	CreateAccessKey(w, req, "requ-esti-duuid")
 
 	body := w.Body.String()
 
@@ -124,7 +114,7 @@ func TestCreateAccessKeyVarsTemplate(t *testing.T) {
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20160126/us-east-1/iam/aws4_request, SignedHeaders=host;x-amz-date, Signature=...")
 
 	w := httptest.NewRecorder()
-	CreateAccessKey(w, req)
+	CreateAccessKey(w, req, "requ-esti-duuid")
 
 	body := w.Body.String()
 
@@ -149,7 +139,7 @@ func TestCreateAccessKeyResponseStructure(t *testing.T) {
 	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20160126/us-east-1/iam/aws4_request, SignedHeaders=host;x-amz-date, Signature=...")
 
 	w := httptest.NewRecorder()
-	CreateAccessKey(w, req)
+	CreateAccessKey(w, req, "requ-esti-duuid")
 
 	body := w.Body.String()
 
