@@ -22,6 +22,9 @@ A lightweight mock AWS Security Token Service (STS) and IAM server for local dev
 - ✅ **ListAccessKeys** - Lists access keys for the specified user
 - ✅ **ListRoles** - Lists IAM roles in the account
 - ✅ **CreateAccessKey** - Creates a new AWS access key and secret access key for the specified user
+- ✅ **DeleteAccessKey** - Deletes the specified access key and returns AWS-style response metadata
+- ✅ **DeleteUser** - Deletes the specified IAM user and returns AWS-style response metadata
+- ✅ **DeleteRole** - Deletes the specified IAM role and returns AWS-style response metadata
 
 ### Additional Features
 - ✅ **Health Check** - `/health` endpoint for monitoring
@@ -80,7 +83,7 @@ docker run -p 8080:8080 local-sts
 - `-listen` - Listen address (default: `:8080`)
 - `-version` - Display version information
 - `-sts-only` - Serve only STS actions (GetCallerIdentity, GetAccessKeyInfo, GetSessionToken, GetFederationToken, AssumeRole)
-- `-iam-only` - Serve only IAM actions (GetUser, GetRole, ListUsers, ListAccessKeys, ListRoles, CreateAccessKey)
+- `-iam-only` - Serve only IAM actions (GetUser, GetRole, ListUsers, ListAccessKeys, ListRoles, CreateAccessKey, DeleteAccessKey, DeleteUser, DeleteRole)
 
 **Note:** The `-sts-only` and `-iam-only` flags are mutually exclusive.
 
@@ -104,6 +107,9 @@ All API calls are made via HTTP POST to the root endpoint (`/`) with the `Action
 - **ListAccessKeys** - Lists access keys for the user
 - **ListRoles** - Lists IAM roles in the account
 - **CreateAccessKey** - Creates a new AWS access key and secret access key for the specified user
+- **DeleteAccessKey** - Deletes an IAM access key
+- **DeleteUser** - Deletes an IAM user
+- **DeleteRole** - Deletes an IAM role
 
 ### Monitoring Endpoints
 

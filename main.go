@@ -32,7 +32,7 @@ var (
 	versDisp   = flag.Bool("version", false, "Display version")
 	iamOnly    = flag.Bool("iam-only", false, "Serve only IAM actions")
 	stsOnly    = flag.Bool("sts-only", false, "Serve only STS actions")
-	iamActions = []string{"GetUser", "GetRole", "ListUsers", "ListAccessKeys", "ListRoles", "CreateAccessKey"}
+	iamActions = []string{"GetUser", "GetRole", "ListUsers", "ListAccessKeys", "ListRoles", "CreateAccessKey", "DeleteAccessKey", "DeleteUser", "DeleteRole"}
 	stsActions = []string{"GetCallerIdentity", "GetAccessKeyInfo", "GetSessionToken", "GetFederationToken", "AssumeRole"}
 )
 
@@ -80,6 +80,8 @@ func stsCall(w http.ResponseWriter, req *http.Request) {
 			iam.ListRoles(w, req)
 		case "CreateAccessKey":
 			iam.CreateAccessKey(w, req)
+		case "DeleteAccessKey", "DeleteUser", "DeleteRole":
+			iam.DeleteAction(w, req, action)
 		default:
 			metrics.ErrorCount.With(prometheus.Labels{"error": "BadRequest"}).Inc()
 			http.Error(w, "Action Not Allowed", http.StatusBadRequest)
