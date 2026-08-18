@@ -1,7 +1,6 @@
 package iam
 
 import (
-	"errors"
 	"log"
 	"net/http"
 	"text/template"
@@ -16,9 +15,9 @@ const listUsersTemplate = `<ListUsersResponse xmlns="https://iam.amazonaws.com/d
     <Users>
        <member>
           <UserId>{{ .AccessKey }}</UserId>
-          <Path>/division_abc/subdivision_xyz/engineering/</Path>
+          <Path>/</Path>
           <UserName>{{ .UserStrng }}</UserName>
-          <Arn>arn:aws:iam::{{ .AccountID }}:user/division_abc/subdivision_xyz/engineering/{{ .UserStrng }}</Arn>
+          <Arn>arn:aws:iam::{{ .AccountID }}:user/{{ .UserStrng }}</Arn>
           <CreateDate>2012-09-05T19:38:48Z</CreateDate>
           <PasswordLastUsed>2014-09-08T21:47:36Z</PasswordLastUsed>
        </member>
@@ -53,8 +52,8 @@ const listRolesTemplate = `<ListRolesResponse xmlns="https://iam.amazonaws.com/d
   <IsTruncated>false</IsTruncated>
   <Roles>
     <member>
-      <Path>/application_abc/component_xyz/</Path>
-      <Arn>arn:aws:iam::{{ .AccountID }}:role/application_abc/component_xyz/S3Access</Arn>
+      <Path>/</Path>
+      <Arn>arn:aws:iam::{{ .AccountID }}:role/S3Access</Arn>
       <RoleName>S3Access</RoleName>
       <AssumeRolePolicyDocument>
         {"Version":"2012-10-17","Statement":[{"Effect":"Allow",
@@ -91,8 +90,6 @@ type ListRolesVars struct {
 	AccessKey string
 	RequestID string
 }
-
-var errPermissionDenied = errors.New("permission denied")
 
 // ListUsers handles API calls to ListUsers
 func ListUsers(w http.ResponseWriter, req *http.Request, requestID string) {

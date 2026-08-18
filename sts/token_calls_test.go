@@ -313,7 +313,7 @@ func TestAssumeRoleAccountID(t *testing.T) {
 	}
 
 	// Check that the ARN contains the account ID
-	expectedARN := "arn:aws:sts::" + expectedAccountID + ":assumed-role/demo/TestAR"
+	expectedARN := "arn:aws:sts::" + expectedAccountID + ":assumed-role/S3Access/Ivan"
 	if !strings.Contains(body, expectedARN) {
 		t.Errorf("response body does not contain expected ARN %q", expectedARN)
 	}

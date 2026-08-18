@@ -35,7 +35,7 @@ func TestGetCallerIdentity(t *testing.T) {
 		{
 			name:              "Valid AWS4 Authorization with ASIADVUE6CL3HNEWV6SC",
 			authHeader:        "AWS4-HMAC-SHA256 Credential=ASIADVUE6CL3HNEWV6SC/20160126/us-east-1/sts/aws4_request, SignedHeaders=host;user-agent;x-amz-date, Signature=WXYZ",
-			expectedARN:       "arn:aws:sts::252608123638:assumed-role/role-name/Carol",
+			expectedARN:       "arn:aws:sts::252608123638:assumed-role/S3Access/Carol",
 			expectedAccessKey: "AROADVUE6CL3HNEWV6SC",
 			expectedAccountID: "252608123638",
 			expectedStatus:    http.StatusOK,

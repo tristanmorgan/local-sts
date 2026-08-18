@@ -14,9 +14,9 @@ const getUserTemplate = `<GetUserResponse xmlns="https://iam.amazonaws.com/doc/2
  <GetUserResult>
     <User>
         <UserId>{{ .AccessKey }}</UserId>
-        <Path>/division_abc/subdivision_xyz/engineering/</Path>
+        <Path>/</Path>
         <UserName>{{ .UserStrng }}</UserName>
-        <Arn>arn:aws:iam::{{ .AccountID }}:user/division_abc/subdivision_xyz/engineering/{{ .UserStrng }}</Arn>
+        <Arn>arn:aws:iam::{{ .AccountID }}:user/{{ .UserStrng }}</Arn>
         <CreateDate>2012-09-05T19:38:48Z</CreateDate>
         <PasswordLastUsed>2014-09-08T21:47:36Z</PasswordLastUsed>
     </User>
@@ -30,8 +30,8 @@ const getUserTemplate = `<GetUserResponse xmlns="https://iam.amazonaws.com/doc/2
 const getRoleTemplate = `<GetRoleResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
 <GetRoleResult>
   <Role>
-    <Path>/application_abc/component_xyz/</Path>
-    <Arn>arn:aws:iam::{{ .AccountID }}:role/application_abc/component_xyz/S3Access</Arn>
+    <Path>/</Path>
+    <Arn>arn:aws:iam::{{ .AccountID }}:role/S3Access</Arn>
     <RoleName>S3Access</RoleName>
     <AssumeRolePolicyDocument>
       {"Version":"2012-10-17","Statement":[{"Effect":"Allow",

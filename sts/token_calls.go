@@ -38,8 +38,8 @@ const assumeRoleXML = `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/
   <AssumeRoleResult>
     <SourceIdentity>{{ .UserStrng }}</SourceIdentity>
     <AssumedRoleUser>
-      <Arn>arn:aws:sts::{{ .AccountID }}:assumed-role/demo/TestAR</Arn>
-      <AssumedRoleId>{{ .RoleID }}:TestAR</AssumedRoleId>
+      <Arn>arn:aws:sts::{{ .AccountID }}:assumed-role/S3Access/{{ .UserStrng }}</Arn>
+      <AssumedRoleId>{{ .RoleID }}:{{ .UserStrng }}</AssumedRoleId>
     </AssumedRoleUser>
     <Credentials>
       <AccessKeyId>{{ .AccessKey }}</AccessKeyId>

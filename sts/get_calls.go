@@ -24,7 +24,7 @@ const userIDTemplate = `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.
 
 const roleIDTemplate = `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
   <GetCallerIdentityResult>
-    <Arn>arn:aws:sts::{{ .AccountID }}:assumed-role/role-name/{{ .UserStrng }}</Arn>
+    <Arn>arn:aws:sts::{{ .AccountID }}:assumed-role/S3Access/{{ .UserStrng }}</Arn>
     <UserId>{{ .AccessKey }}:{{ .UserStrng }}</UserId>
     <Account>{{ .AccountID }}</Account>
   </GetCallerIdentityResult>
