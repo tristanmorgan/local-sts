@@ -195,7 +195,7 @@ func TestCreateNewKeyRandomness(t *testing.T) {
 	keys := make(map[string]bool)
 	iterations := 100
 
-	for i := 0; i < iterations; i++ {
+	for range iterations {
 		newKey := CreateNewKey(inputKey)
 		keys[newKey] = true
 	}
